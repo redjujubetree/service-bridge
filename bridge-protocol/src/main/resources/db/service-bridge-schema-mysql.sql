@@ -1,0 +1,23 @@
+CREATE TABLE IF NOT EXISTS service_bridge_request (
+    request_id VARCHAR(64) NOT NULL COMMENT '请求唯一标识',
+    protocol_version VARCHAR(16) NOT NULL COMMENT '消息协议版本',
+    business_type VARCHAR(128) NOT NULL COMMENT '业务类型，用于路由到对应 Handler',
+    request_payload LONGTEXT NOT NULL COMMENT '请求负载，JSON 格式',
+    wait_status VARCHAR(20) NOT NULL COMMENT '客户端等待状态：WAITING、RESPONDED、TIMED_OUT',
+    process_status VARCHAR(20) NOT NULL COMMENT '服务端处理状态：PENDING、PROCESSING、SUCCESS、FAILED',
+    result_payload LONGTEXT NULL COMMENT '成功结果负载，JSON 格式',
+    error_code VARCHAR(64) NULL COMMENT '失败错误码',
+    error_message VARCHAR(1000) NULL COMMENT '失败错误信息',
+    processing_token VARCHAR(64) NULL COMMENT '当前处理尝试令牌，用于防止迟到结果覆盖',
+    processing_started_at DATETIME(3) NULL COMMENT '当前处理尝试开始时间',
+    processing_expires_at DATETIME(3) NULL COMMENT '当前处理尝试过期时间',
+    client_deadline_at DATETIME(3) NOT NULL COMMENT '客户端等待截止时间',
+    responded_at DATETIME(3) NULL COMMENT '客户端响应或等待超时时间',
+    process_completed_at DATETIME(3) NULL COMMENT '服务端处理完成时间',
+    created_at DATETIME(3) NOT NULL COMMENT '记录创建时间',
+    updated_at DATETIME(3) NOT NULL COMMENT '记录最后更新时间',
+    version INT NOT NULL DEFAULT 0 COMMENT '乐观锁版本号',
+    PRIMARY KEY (request_id),
+    KEY idx_service_bridge_wait (wait_status, client_deadline_at),
+    KEY idx_service_bridge_process (process_status, processing_expires_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='服务桥接请求及处理结果';
