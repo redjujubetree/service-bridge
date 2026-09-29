@@ -82,6 +82,24 @@ public class JdbcBridgeResultStore implements BridgeResultStore {
                                    String errorCode,
                                    String errorMessage,
                                    LocalDateTime completedAt) {
+        return updateFailure(requestId, attemptToken, errorCode, errorMessage, completedAt, false);
+    }
+
+    @Override
+    public boolean completeExpiredFailure(String requestId,
+                                          String attemptToken,
+                                          String errorCode,
+                                          String errorMessage,
+                                          LocalDateTime completedAt) {
+        return updateFailure(requestId, attemptToken, errorCode, errorMessage, completedAt, true);
+    }
+
+    private boolean updateFailure(String requestId,
+                                  String attemptToken,
+                                  String errorCode,
+                                  String errorMessage,
+                                  LocalDateTime completedAt,
+                                  boolean requireExpired) {
         String sql = "UPDATE service_bridge_request "
                 + "SET process_status = 'FAILED', result_payload = NULL, "
                 + "error_code = :errorCode, error_message = :errorMessage, "
@@ -90,6 +108,9 @@ public class JdbcBridgeResultStore implements BridgeResultStore {
                 + "updated_at = :completedAt, version = version + 1 "
                 + "WHERE request_id = :requestId AND process_status = 'PROCESSING' "
                 + "AND processing_token = :attemptToken";
+        if (requireExpired) {
+            sql += " AND processing_expires_at <= :completedAt";
+        }
         MapSqlParameterSource params = new MapSqlParameterSource()
                 .addValue("requestId", requestId)
                 .addValue("attemptToken", attemptToken)
@@ -97,6 +118,18 @@ public class JdbcBridgeResultStore implements BridgeResultStore {
                 .addValue("errorMessage", truncate(errorMessage, 1000))
                 .addValue("completedAt", Timestamp.valueOf(completedAt));
         return jdbc.update(sql, params) == 1;
+    }
+
+    @Override
+    public boolean isClientWaiting(String requestId, LocalDateTime now) {
+        String sql = "SELECT COUNT(*) FROM service_bridge_request "
+                + "WHERE request_id = :requestId AND wait_status = 'WAITING' "
+                + "AND client_deadline_at > :now";
+        MapSqlParameterSource params = new MapSqlParameterSource()
+                .addValue("requestId", requestId)
+                .addValue("now", Timestamp.valueOf(now));
+        Integer count = jdbc.queryForObject(sql, params, Integer.class);
+        return count != null && count > 0;
     }
 
     @Override
@@ -108,18 +141,6 @@ public class JdbcBridgeResultStore implements BridgeResultStore {
                 Collections.singletonMap("requestId", requestId),
                 rowMapper());
         return rows.isEmpty() ? Optional.<BridgeProcessingRecord>empty() : Optional.of(rows.get(0));
-    }
-
-    @Override
-    public List<BridgeProcessingRecord> findExpired(LocalDateTime now, int limit) {
-        String sql = "SELECT request_id, business_type, process_status, processing_token, "
-                + "processing_expires_at FROM service_bridge_request "
-                + "WHERE process_status = 'PROCESSING' AND processing_token IS NOT NULL "
-                + "AND processing_expires_at <= :now ORDER BY processing_expires_at ASC LIMIT :limit";
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("now", Timestamp.valueOf(now))
-                .addValue("limit", limit);
-        return jdbc.query(sql, params, rowMapper());
     }
 
     private RowMapper<BridgeProcessingRecord> rowMapper() {

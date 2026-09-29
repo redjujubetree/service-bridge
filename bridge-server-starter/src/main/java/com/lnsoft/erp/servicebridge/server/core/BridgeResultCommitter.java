@@ -3,6 +3,7 @@ package com.lnsoft.erp.servicebridge.server.core;
 import com.lnsoft.erp.servicebridge.protocol.BridgeProcessStatus;
 import com.lnsoft.erp.servicebridge.protocol.BridgeRequestMessage;
 import com.lnsoft.erp.servicebridge.protocol.BridgeResponseMessage;
+import com.lnsoft.erp.servicebridge.protocol.BridgeTopicProperties;
 import com.lnsoft.erp.servicebridge.protocol.ServiceBridgeProtocol;
 import com.lnsoft.erp.servicebridge.server.config.ServiceBridgeServerProperties;
 import com.lnsoft.erp.servicebridge.server.store.BridgeResultStore;
@@ -17,13 +18,16 @@ public class BridgeResultCommitter {
 
     private final BridgeResultStore resultStore;
     private final MessageProducer messageProducer;
+    private final BridgeTopicProperties topics;
     private final ServiceBridgeServerProperties properties;
 
     public BridgeResultCommitter(BridgeResultStore resultStore,
                                  MessageProducer messageProducer,
+                                 BridgeTopicProperties topics,
                                  ServiceBridgeServerProperties properties) {
         this.resultStore = resultStore;
         this.messageProducer = messageProducer;
+        this.topics = topics;
         this.properties = properties;
     }
 
@@ -37,8 +41,10 @@ public class BridgeResultCommitter {
         if (!updated) {
             return false;
         }
-        publish(request.getRequestId(), request.getBusinessType(),
-                BridgeProcessStatus.SUCCESS, null, completedAt);
+        if (resultStore.isClientWaiting(request.getRequestId(), LocalDateTime.now())) {
+            publish(request.getRequestId(), request.getBusinessType(),
+                    BridgeProcessStatus.SUCCESS, null, completedAt);
+        }
         return true;
     }
 
@@ -63,7 +69,27 @@ public class BridgeResultCommitter {
         if (!updated) {
             return false;
         }
-        publish(requestId, businessType, BridgeProcessStatus.FAILED, errorCode, completedAt);
+        if (resultStore.isClientWaiting(requestId, LocalDateTime.now())) {
+            publish(requestId, businessType, BridgeProcessStatus.FAILED, errorCode, completedAt);
+        }
+        return true;
+    }
+
+    @Transactional
+    public boolean completeExpiredFailure(String requestId,
+                                          String businessType,
+                                          String attemptToken) {
+        LocalDateTime completedAt = LocalDateTime.now();
+        String errorCode = "PROCESSING_TIMEOUT";
+        boolean updated = resultStore.completeExpiredFailure(
+                requestId, attemptToken, errorCode,
+                "Server processing deadline exceeded", completedAt);
+        if (!updated) {
+            return false;
+        }
+        if (resultStore.isClientWaiting(requestId, LocalDateTime.now())) {
+            publish(requestId, businessType, BridgeProcessStatus.FAILED, errorCode, completedAt);
+        }
         return true;
     }
 
@@ -82,7 +108,7 @@ public class BridgeResultCommitter {
         response.setCompletedAt(
                 completedAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
         messageProducer.send(
-                ServiceBridgeProtocol.RESPONSE_TOPIC,
+                topics.getResponseTopic(),
                 properties.getMessageSource(),
                 response);
     }

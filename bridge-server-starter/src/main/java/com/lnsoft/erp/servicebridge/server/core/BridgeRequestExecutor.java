@@ -6,7 +6,6 @@ import com.lnsoft.erp.servicebridge.protocol.BridgeMessageValidator;
 import com.lnsoft.erp.servicebridge.protocol.BridgeRequestMessage;
 import com.lnsoft.erp.servicebridge.server.config.ServiceBridgeServerProperties;
 import com.lnsoft.erp.servicebridge.server.model.AcquireResult;
-import com.lnsoft.erp.servicebridge.server.store.BridgeResultStore;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -14,18 +13,18 @@ import java.util.UUID;
 public class BridgeRequestExecutor {
 
     private final BridgeRequestHandlerRegistry handlerRegistry;
-    private final BridgeResultStore resultStore;
+    private final BridgeRequestAcquirer requestAcquirer;
     private final BridgeResultCommitter resultCommitter;
     private final ServiceBridgeServerProperties properties;
     private final ObjectMapper objectMapper;
 
     public BridgeRequestExecutor(BridgeRequestHandlerRegistry handlerRegistry,
-                                 BridgeResultStore resultStore,
+                                 BridgeRequestAcquirer requestAcquirer,
                                  BridgeResultCommitter resultCommitter,
                                  ServiceBridgeServerProperties properties,
                                  ObjectMapper objectMapper) {
         this.handlerRegistry = handlerRegistry;
-        this.resultStore = resultStore;
+        this.requestAcquirer = requestAcquirer;
         this.resultCommitter = resultCommitter;
         this.properties = properties;
         this.objectMapper = objectMapper;
@@ -37,11 +36,8 @@ public class BridgeRequestExecutor {
 
         String attemptToken = UUID.randomUUID().toString().replace("-", "");
         LocalDateTime startedAt = LocalDateTime.now();
-        AcquireResult acquired = resultStore.tryAcquire(
-                request.getRequestId(),
-                attemptToken,
-                startedAt,
-                startedAt.plusNanos(properties.getProcessingTimeout().toNanos()));
+        AcquireResult acquired = requestAcquirer.acquire(
+                request.getRequestId(), attemptToken, startedAt);
 
         if (acquired == AcquireResult.ALREADY_SUCCESS || acquired == AcquireResult.ALREADY_FAILED) {
             return;

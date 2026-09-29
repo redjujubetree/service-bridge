@@ -5,14 +5,14 @@ spring:
   application:
     name: service-bridge-example
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/service_bridge?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
-    username: ${MYSQL_USERNAME:service_bridge}
-    password: ${MYSQL_PASSWORD:service_bridge}
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/kenny_test?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:kenny}
+    password: ${MYSQL_PASSWORD:12345@Qwert}
     driver-class-name: com.mysql.cj.jdbc.Driver
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:}
+    password: ${REDIS_PASSWORD:123456}
   sql:
     init:
       mode: always
@@ -29,16 +29,15 @@ bedrock:
 
 service:
   bridge:
+    request-topic: ${SERVICE_BRIDGE_REQUEST_TOPIC:service-bridge.request}
+    response-topic: ${SERVICE_BRIDGE_RESPONSE_TOPIC:service-bridge.response}
     client:
       timeout: 60s
       message-source: ${spring.application.name}-client
       redis-channel: ${spring.application.name}:service-bridge:completed
-      require-active-subscriber: true
       reconciliation-enabled: true
       reconciliation-interval: 5s
     server:
       message-source: ${spring.application.name}-server
       processing-timeout: 15m
       recovery-enabled: true
-      recovery-interval: 1m
-      recovery-batch-size: 100

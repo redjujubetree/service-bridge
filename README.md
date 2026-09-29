@@ -31,7 +31,7 @@ HTTP JSON
   → 同事务写 service_bridge_request + BedrockMQ REQUEST
   → Server 消费 REQUEST
   → Handler 处理
-  → 同事务写 SUCCESS/FAILED + BedrockMQ RESPONSE
+  → 同事务写 SUCCESS/FAILED；Client 仍在等待时发送 BedrockMQ RESPONSE
   → Client 集群中一个实例消费 RESPONSE
   → Redis Pub/Sub 广播
   → 持有 WaitContext 的实例读取数据库
@@ -39,6 +39,7 @@ HTTP JSON
 ```
 
 Redis 只传递完成通知，最终结果始终从数据库读取。Redis 通知丢失时，Client 的定时补偿和 60 秒超时检查仍会读取数据库。
+Client 已超时或等待截止时间已过时，Server 仍保存最终结果，但不再发送 RESPONSE。
 
 ## 1. 初始化数据库
 
@@ -49,6 +50,15 @@ Redis 只传递完成通知，最终结果始终从数据库读取。Redis 通�
 Client、Server、BedrockMQ 必须使用同一个数据库和同一个 Spring `DataSource`，这样业务状态与 BedrockMQ 消息才能加入同一个本地事务。
 
 ## 2. Client 服务接入
+
+Client 和 Server 使用相同的 Topic 配置，未配置时沿用默认值：
+
+```yaml
+service:
+  bridge:
+    request-topic: service-bridge.request
+    response-topic: service-bridge.response
+```
 
 ```xml
 <dependency>
@@ -66,7 +76,6 @@ service:
       message-source: ${spring.application.name}
       redis-channel: ${spring.profiles.active:default}:${spring.application.name}:service-bridge:completed
       max-waiting-requests: 10000
-      require-active-subscriber: true
       reconciliation-enabled: true
       reconciliation-interval: 5s
 ```
@@ -109,8 +118,6 @@ service:
       message-source: ${spring.application.name}
       processing-timeout: 15m
       recovery-enabled: true
-      recovery-interval: 1m
-      recovery-batch-size: 100
 ```
 
 实现业务 Handler：
@@ -150,14 +157,17 @@ cd /Users/kenny/vibe-coding/BedrockMQ
 mvn -pl bedrockmq-spring-boot-starter -am clean install
 ```
 
-## 固定消息协议
+## 消息协议与 Topic
 
 ```text
-REQUEST topic:    service-bridge.request
+REQUEST topic:    service.bridge.request-topic（默认 service-bridge.request）
 REQUEST consumer: service-bridge-server
 
-RESPONSE topic:    service-bridge.response
+RESPONSE topic:    service.bridge.response-topic（默认 service-bridge.response）
 RESPONSE consumer: service-bridge-client
+
+RECOVERY topic:    service-bridge.processing-timeout
+RECOVERY consumer: service-bridge-server-recovery
 ```
 
 同一个 Server 逻辑集群的所有实例必须加载完全相同的 Handler 集合，并使用相同 consumer 名称。不同业务服务不能用不同 consumer 名称订阅同一个 REQUEST Topic，否则 BedrockMQ 的 Pub/Sub 扇出会让每个服务都收到消息。

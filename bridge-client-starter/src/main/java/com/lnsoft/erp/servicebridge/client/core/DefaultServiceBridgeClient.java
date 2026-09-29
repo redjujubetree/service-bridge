@@ -9,17 +9,15 @@ import com.lnsoft.erp.servicebridge.client.store.BridgeRequestStore;
 import com.lnsoft.erp.servicebridge.protocol.BridgeProcessStatus;
 import com.lnsoft.erp.servicebridge.protocol.BridgeRequestMessage;
 import com.lnsoft.erp.servicebridge.protocol.BridgeWaitStatus;
+import com.lnsoft.erp.servicebridge.protocol.BridgeTopicProperties;
 import com.lnsoft.erp.servicebridge.protocol.ServiceBridgeProtocol;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.async.DeferredResult;
-import top.redjujubetree.bedrock.mq.entity.BedrockSubscription;
-import top.redjujubetree.bedrock.mq.mapper.BedrockSubscriptionMapper;
 import top.redjujubetree.bedrock.mq.producer.MessageProducer;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.util.List;
 import java.util.Optional;
 
 public class DefaultServiceBridgeClient implements ServiceBridgeClient {
@@ -31,7 +29,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
     private final BridgeCompletionCoordinator completionCoordinator;
     private final BridgeResponseFactory responseFactory;
     private final MessageProducer messageProducer;
-    private final BedrockSubscriptionMapper subscriptionMapper;
+    private final BridgeTopicProperties topics;
     private final TransactionTemplate transactionTemplate;
 
     public DefaultServiceBridgeClient(ServiceBridgeClientProperties properties,
@@ -41,7 +39,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
                                       BridgeCompletionCoordinator completionCoordinator,
                                       BridgeResponseFactory responseFactory,
                                       MessageProducer messageProducer,
-                                      BedrockSubscriptionMapper subscriptionMapper,
+                                      BridgeTopicProperties topics,
                                       TransactionTemplate transactionTemplate) {
         this.properties = properties;
         this.idGenerator = idGenerator;
@@ -50,7 +48,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         this.completionCoordinator = completionCoordinator;
         this.responseFactory = responseFactory;
         this.messageProducer = messageProducer;
-        this.subscriptionMapper = subscriptionMapper;
+        this.topics = topics;
         this.transactionTemplate = transactionTemplate;
     }
 
@@ -67,12 +65,6 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         String requestId = idGenerator.nextId();
         DeferredResult<ResponseEntity<BridgeHttpResponse>> deferred =
                 new DeferredResult<ResponseEntity<BridgeHttpResponse>>(properties.getTimeout().toMillis());
-
-        if (properties.isRequireActiveSubscriber() && !hasActiveRequestSubscriber()) {
-            deferred.setResult(responseFactory.unavailable(
-                    requestId, "No active BedrockMQ subscriber for " + ServiceBridgeProtocol.REQUEST_TOPIC));
-            return deferred;
-        }
 
         final WaitContext context = new WaitContext(requestId, deferred);
         configureCallbacks(context);
@@ -93,7 +85,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
             transactionTemplate.execute(status -> {
                 requestStore.create(record);
                 messageProducer.send(
-                        ServiceBridgeProtocol.REQUEST_TOPIC,
+                        topics.getRequestTopic(),
                         properties.getMessageSource(),
                         message);
                 return null;
@@ -124,12 +116,6 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         });
         context.getDeferredResult().onCompletion(
                 () -> waitRegistry.remove(context.getRequestId(), context));
-    }
-
-    private boolean hasActiveRequestSubscriber() {
-        List<BedrockSubscription> subscriptions =
-                subscriptionMapper.findEnabledByTopic(ServiceBridgeProtocol.REQUEST_TOPIC);
-        return subscriptions != null && !subscriptions.isEmpty();
     }
 
     private BridgeRequestRecord newRecord(String requestId,

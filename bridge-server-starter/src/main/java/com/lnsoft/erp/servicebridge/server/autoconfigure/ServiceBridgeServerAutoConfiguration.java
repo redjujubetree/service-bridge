@@ -1,10 +1,12 @@
 package com.lnsoft.erp.servicebridge.server.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lnsoft.erp.servicebridge.protocol.BridgeTopicProperties;
 import com.lnsoft.erp.servicebridge.server.config.ServiceBridgeServerProperties;
 import com.lnsoft.erp.servicebridge.server.consumer.BridgeRequestBedrockConsumer;
+import com.lnsoft.erp.servicebridge.server.consumer.BridgeRecoveryBedrockConsumer;
 import com.lnsoft.erp.servicebridge.server.core.BridgeProcessingRecovery;
-import com.lnsoft.erp.servicebridge.server.core.BridgeProcessingRecoveryScheduler;
+import com.lnsoft.erp.servicebridge.server.core.BridgeRequestAcquirer;
 import com.lnsoft.erp.servicebridge.server.core.BridgeRequestExecutor;
 import com.lnsoft.erp.servicebridge.server.core.BridgeRequestHandler;
 import com.lnsoft.erp.servicebridge.server.core.BridgeRequestHandlerRegistry;
@@ -12,17 +14,18 @@ import com.lnsoft.erp.servicebridge.server.core.BridgeResultCommitter;
 import com.lnsoft.erp.servicebridge.server.store.BridgeResultStore;
 import com.lnsoft.erp.servicebridge.server.store.jdbc.JdbcBridgeResultStore;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.ApplicationContext;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
-import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import top.redjujubetree.bedrock.mq.config.BedrockAutoConfiguration;
+import top.redjujubetree.bedrock.mq.mapper.BedrockSubscriptionMapper;
 import top.redjujubetree.bedrock.mq.producer.MessageProducer;
 
 import java.util.List;
@@ -41,6 +44,19 @@ public class ServiceBridgeServerAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
+    @ConfigurationProperties(prefix = "service.bridge")
+    public BridgeTopicProperties bridgeTopicProperties() {
+        return new BridgeTopicProperties();
+    }
+
+    @Bean
+    public static BridgeServerConsumerRegistrar bridgeServerConsumerRegistrar(
+            ApplicationContext applicationContext) {
+        return new BridgeServerConsumerRegistrar(applicationContext);
+    }
+
+    @Bean
+    @ConditionalOnMissingBean
     public BridgeResultStore bridgeResultStore(NamedParameterJdbcTemplate jdbc) {
         return new JdbcBridgeResultStore(jdbc);
     }
@@ -56,18 +72,29 @@ public class ServiceBridgeServerAutoConfiguration {
     public BridgeResultCommitter bridgeResultCommitter(
             BridgeResultStore resultStore,
             MessageProducer messageProducer,
+            BridgeTopicProperties topics,
             ServiceBridgeServerProperties properties) {
-        return new BridgeResultCommitter(resultStore, messageProducer, properties);
+        return new BridgeResultCommitter(resultStore, messageProducer, topics, properties);
+    }
+
+    @Bean
+    public BridgeRequestAcquirer bridgeRequestAcquirer(
+            BridgeResultStore resultStore,
+            MessageProducer messageProducer,
+            BedrockSubscriptionMapper subscriptionMapper,
+            ServiceBridgeServerProperties properties) {
+        return new BridgeRequestAcquirer(resultStore, messageProducer,
+                subscriptionMapper, properties);
     }
 
     @Bean
     public BridgeRequestExecutor bridgeRequestExecutor(
             BridgeRequestHandlerRegistry registry,
-            BridgeResultStore resultStore,
+            BridgeRequestAcquirer requestAcquirer,
             BridgeResultCommitter committer,
             ServiceBridgeServerProperties properties,
             ObjectMapper objectMapper) {
-        return new BridgeRequestExecutor(registry, resultStore, committer, properties, objectMapper);
+        return new BridgeRequestExecutor(registry, requestAcquirer, committer, properties, objectMapper);
     }
 
     @Bean
@@ -86,22 +113,9 @@ public class ServiceBridgeServerAutoConfiguration {
     public BridgeProcessingRecovery bridgeProcessingRecovery(
             BridgeResultStore resultStore,
             BridgeResultCommitter committer,
+            MessageProducer messageProducer,
             ServiceBridgeServerProperties properties) {
-        return new BridgeProcessingRecovery(resultStore, committer, properties);
-    }
-
-    @Bean(name = "serviceBridgeServerRecoveryTaskScheduler")
-    @ConditionalOnProperty(
-            prefix = "service.bridge.server",
-            name = "recovery-enabled",
-            havingValue = "true",
-            matchIfMissing = true)
-    public ThreadPoolTaskScheduler serviceBridgeServerRecoveryTaskScheduler() {
-        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
-        scheduler.setPoolSize(1);
-        scheduler.setThreadNamePrefix("service-bridge-recovery-");
-        scheduler.setRemoveOnCancelPolicy(true);
-        return scheduler;
+        return new BridgeProcessingRecovery(resultStore, committer, messageProducer, properties);
     }
 
     @Bean
@@ -110,11 +124,8 @@ public class ServiceBridgeServerAutoConfiguration {
             name = "recovery-enabled",
             havingValue = "true",
             matchIfMissing = true)
-    public BridgeProcessingRecoveryScheduler bridgeProcessingRecoveryScheduler(
-            @Qualifier("serviceBridgeServerRecoveryTaskScheduler") ThreadPoolTaskScheduler scheduler,
-            BridgeProcessingRecovery recovery,
-            ServiceBridgeServerProperties properties) {
-        return new BridgeProcessingRecoveryScheduler(
-                scheduler, recovery, properties.getRecoveryInterval());
+    public BridgeRecoveryBedrockConsumer bridgeRecoveryBedrockConsumer(
+            ObjectMapper objectMapper, BridgeProcessingRecovery recovery) {
+        return new BridgeRecoveryBedrockConsumer(objectMapper, recovery);
     }
 }

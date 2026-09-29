@@ -3,18 +3,20 @@
 ## 推荐启动顺序
 
 1. 执行 BedrockMQ 和 ServiceBridge DDL；
-2. 启动 Server，等待 `service-bridge.request/service-bridge-server` 订阅注册；
+2. 启动 Server，等待配置的 REQUEST Topic 与 `service-bridge-server` 订阅注册；
 3. 启动 Redis；
 4. 启动 Client；
 5. 开放 HTTP 流量。
 
-BedrockMQ 在发送消息时按当时已启用的订阅创建消费记录。如果 REQUEST Topic 没有订阅，之后启动 Server 不会自动为旧消息补建消费记录。Client 默认在发送前检查订阅，没有订阅时返回 503。
+Client 发送 REQUEST 时不检查订阅者；BedrockMQ 按发送时已启用的订阅创建消费记录。
 
 ## 配置一致性
 
 同一 Client 集群必须使用相同 Redis Channel。不同环境共享 Redis 时，Channel 必须包含环境名，避免测试和生产互相广播。
+Client 与 Server 的 `service.bridge.request-topic` 和 `service.bridge.response-topic` 必须分别一致。
+BedrockMQ 的消费者注册键使用冒号分隔 Topic 和消费者名，因此这两个 Topic 不能包含 `:`。
 
-同一 Server 集群必须加载相同 `businessType` Handler 集合。滚动发布期间新增 Handler 时，应先完成所有 Server 实例部署，再允许 Client 发送新业务类型。
+同一 Server 集群必须加载相同 `businessType` Handler 集合。
 
 ## 监控建议
 
@@ -26,7 +28,7 @@ BedrockMQ 在发送消息时按当时已启用的订阅创建消费记录。如�
 - Client 定时补偿命中数量；
 - Server Handler 时长和异常数量；
 - Server stale token 更新失败数量；
-- PROCESSING 恢复数量；
+- PROCESSING 延时恢复消息的投递、重试和终结数量；
 - BedrockMQ PENDING/PROCESSING/FAILED 数量。
 
 ## 日志安全
@@ -48,7 +50,3 @@ BedrockMQ 在发送消息时按当时已启用的订阅创建消费记录。如�
 | Server 实例崩溃 | BedrockMQ 和 Server processing deadline 恢复 |
 | RESPONSE 重复 | WaitContext 原子完成，重复通知被忽略 |
 | Handler 重复执行 | 结果表受 token 保护，业务副作用需 requestId 幂等 |
-
-## 升级协议
-
-修改消息字段时优先做向后兼容新增。破坏性变更必须提升 `protocolVersion`，并安排 Client/Server 双读或双写窗口。当前验证器拒绝非 `1.0` 消息，未经兼容设计不要单边升级版本。

@@ -1,10 +1,10 @@
 {
   "properties": [
+    {"name":"service.bridge.request-topic","type":"java.lang.String","defaultValue":"service-bridge.request","description":"BedrockMQ REQUEST topic shared by Client and Server."},
+    {"name":"service.bridge.response-topic","type":"java.lang.String","defaultValue":"service-bridge.response","description":"BedrockMQ RESPONSE topic shared by Client and Server."},
     {"name":"service.bridge.server.enabled","type":"java.lang.Boolean","defaultValue":true,"description":"Enable ServiceBridge server auto-configuration."},
     {"name":"service.bridge.server.message-source","type":"java.lang.String","defaultValue":"service-bridge-server","description":"BedrockMQ response message source."},
     {"name":"service.bridge.server.processing-timeout","type":"java.time.Duration","defaultValue":"15m","description":"Fixed ownership deadline for one server processing attempt."},
-    {"name":"service.bridge.server.recovery-enabled","type":"java.lang.Boolean","defaultValue":true,"description":"Recover expired PROCESSING requests as failures."},
-    {"name":"service.bridge.server.recovery-interval","type":"java.time.Duration","defaultValue":"1m","description":"Expired processing recovery interval."},
-    {"name":"service.bridge.server.recovery-batch-size","type":"java.lang.Integer","defaultValue":100,"description":"Maximum expired requests recovered per scan."}
+    {"name":"service.bridge.server.recovery-enabled","type":"java.lang.Boolean","defaultValue":true,"description":"Schedule a BedrockMQ delayed message for each PROCESSING attempt to recover it on timeout."}
   ]
 }

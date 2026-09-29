@@ -5,6 +5,7 @@
 Client Starter 是 HTTP 请求侧组件，负责建立 `requestId → DeferredResult` 本机映射。Server Starter 是后台处理侧组件，只关心业务执行和结果写入，不依赖 Redis，也不感知 HTTP 连接是否仍然存在。
 
 `bridge-protocol` 是双方唯一的线上协议来源。协议版本、Topic、consumer 名、状态枚举和消息字段不能在两个 Starter 内各自复制。
+REQUEST 和 RESPONSE Topic 由 `service.bridge.request-topic`、`service.bridge.response-topic` 配置，Client 与 Server 必须保持一致；未配置时使用协议中的默认值。
 
 ## 提交阶段
 
@@ -23,15 +24,19 @@ BedrockMQ 与业务表共用一个 DataSource，因此步骤 4 和 5 同时提�
 
 ## 完成阶段
 
-Server Handler 返回后，结果和 RESPONSE 也在同一事务提交：
+Server Handler 返回后，在同一事务中提交结果，以及仍需通知时的 RESPONSE：
 
 ```text
 1. 使用 requestId + attemptToken 条件更新 SUCCESS/FAILED
-2. 更新成功后 MessageProducer.send(RESPONSE)
-3. 提交事务
+2. 检查 Client 是否仍为 WAITING 且未超过等待截止时间
+3. 仍在等待时 MessageProducer.send(RESPONSE)
+4. 提交事务
 ```
 
 结果更新失败通常表示当前执行已失去所有权，不能发送 RESPONSE，也不能无条件覆盖新执行结果。
+Client 已超时或等待截止时间已过时，只保存最终结果供后续查询，不发送 RESPONSE。
+
+Server 取得执行权时，同事务发送一条 BedrockMQ 延时恢复消息。延时消息携带本次执行令牌，到期后检查令牌和数据库期限，再决定是否将仍处于 PROCESSING 的请求终结为失败。此过程不使用定时扫描。
 
 ## RESPONSE 与 Redis
 

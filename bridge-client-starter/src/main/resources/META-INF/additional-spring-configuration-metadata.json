@@ -1,11 +1,12 @@
 {
   "properties": [
+    {"name":"service.bridge.request-topic","type":"java.lang.String","defaultValue":"service-bridge.request","description":"BedrockMQ REQUEST topic shared by Client and Server."},
+    {"name":"service.bridge.response-topic","type":"java.lang.String","defaultValue":"service-bridge.response","description":"BedrockMQ RESPONSE topic shared by Client and Server."},
     {"name":"service.bridge.client.enabled","type":"java.lang.Boolean","defaultValue":true,"description":"Enable ServiceBridge client auto-configuration."},
     {"name":"service.bridge.client.timeout","type":"java.time.Duration","defaultValue":"60s","description":"Maximum time an HTTP request waits for a result."},
     {"name":"service.bridge.client.message-source","type":"java.lang.String","defaultValue":"service-bridge-client","description":"BedrockMQ message source."},
     {"name":"service.bridge.client.redis-channel","type":"java.lang.String","defaultValue":"service-bridge:completed","description":"Redis Pub/Sub completion channel."},
     {"name":"service.bridge.client.max-waiting-requests","type":"java.lang.Integer","defaultValue":10000,"description":"Maximum in-memory waiting requests per instance."},
-    {"name":"service.bridge.client.require-active-subscriber","type":"java.lang.Boolean","defaultValue":true,"description":"Reject submissions when the request topic has no active BedrockMQ subscription."},
     {"name":"service.bridge.client.reconciliation-enabled","type":"java.lang.Boolean","defaultValue":true,"description":"Periodically reconcile waiting requests with database terminal results."},
     {"name":"service.bridge.client.reconciliation-interval","type":"java.time.Duration","defaultValue":"5s","description":"Database reconciliation interval."}
   ]

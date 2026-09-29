@@ -24,7 +24,7 @@ PENDING → PROCESSING → SUCCESS
                    └→ FAILED
 ```
 
-HTTP 超时不修改 `process_status`，Server 完成结果时也不检查 `wait_status`。
+HTTP 超时不修改 `process_status`，Server 完成结果时不以 `wait_status` 限制结果落库；只有发送 RESPONSE 前才检查等待状态和截止时间。
 
 ## 超时边界
 

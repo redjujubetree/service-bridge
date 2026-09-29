@@ -19,6 +19,8 @@ Controller 不应调用 `getResult()`、`Thread.sleep()` 或循环查询。直�
 
 `query` 用于客户端断线或 HTTP 已超时后的主动查询。它不会修改 `wait_status`。
 
+`service.bridge.request-topic` 与 `service.bridge.response-topic` 可配置，必须与 Server 使用相同值。
+
 ## 响应结构
 
 ```json
@@ -37,7 +39,6 @@ Controller 不应调用 `getResult()`、`Thread.sleep()` 或循环查询。直�
 | 成功 | 200 | `SUCCESS` |
 | Server 业务失败 | 422 | Server error code 或 `FAILED` |
 | 60 秒未完成 | 408 | `TIMEOUT` |
-| 没有 REQUEST 订阅 | 503 | `SERVICE_UNAVAILABLE` |
 | 等待容量达到上限 | 503 | `SERVICE_UNAVAILABLE` |
 | 请求或 MQ 事务提交失败 | 503 | `SERVICE_UNAVAILABLE` |
 

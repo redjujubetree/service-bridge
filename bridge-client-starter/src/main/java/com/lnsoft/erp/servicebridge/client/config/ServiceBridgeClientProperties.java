@@ -12,7 +12,6 @@ public class ServiceBridgeClientProperties {
     private String messageSource = "service-bridge-client";
     private String redisChannel = "service-bridge:completed";
     private int maxWaitingRequests = 10000;
-    private boolean requireActiveSubscriber = true;
     private boolean reconciliationEnabled = true;
     private Duration reconciliationInterval = Duration.ofSeconds(5);
 
@@ -54,14 +53,6 @@ public class ServiceBridgeClientProperties {
 
     public void setMaxWaitingRequests(int maxWaitingRequests) {
         this.maxWaitingRequests = maxWaitingRequests;
-    }
-
-    public boolean isRequireActiveSubscriber() {
-        return requireActiveSubscriber;
-    }
-
-    public void setRequireActiveSubscriber(boolean requireActiveSubscriber) {
-        this.requireActiveSubscriber = requireActiveSubscriber;
     }
 
     public boolean isReconciliationEnabled() {

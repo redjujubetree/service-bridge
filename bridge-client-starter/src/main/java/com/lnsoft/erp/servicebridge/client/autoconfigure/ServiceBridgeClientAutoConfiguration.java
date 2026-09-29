@@ -1,6 +1,7 @@
 package com.lnsoft.erp.servicebridge.client.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.lnsoft.erp.servicebridge.protocol.BridgeTopicProperties;
 import com.lnsoft.erp.servicebridge.client.config.ServiceBridgeClientProperties;
 import com.lnsoft.erp.servicebridge.client.core.BridgeCompletionCoordinator;
 import com.lnsoft.erp.servicebridge.client.core.BridgeReconciliationScheduler;
@@ -21,9 +22,11 @@ import org.springframework.boot.autoconfigure.AutoConfigureBefore;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.ApplicationContext;
 import org.springframework.data.redis.connection.RedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.listener.ChannelTopic;
@@ -35,7 +38,6 @@ import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.async.DeferredResult;
 import top.redjujubetree.bedrock.mq.config.BedrockAutoConfiguration;
-import top.redjujubetree.bedrock.mq.mapper.BedrockSubscriptionMapper;
 import top.redjujubetree.bedrock.mq.producer.MessageProducer;
 
 @Configuration
@@ -48,6 +50,19 @@ import top.redjujubetree.bedrock.mq.producer.MessageProducer;
         matchIfMissing = true)
 @EnableConfigurationProperties(ServiceBridgeClientProperties.class)
 public class ServiceBridgeClientAutoConfiguration {
+
+    @Bean
+    @ConditionalOnMissingBean
+    @ConfigurationProperties(prefix = "service.bridge")
+    public BridgeTopicProperties bridgeTopicProperties() {
+        return new BridgeTopicProperties();
+    }
+
+    @Bean
+    public static BridgeClientConsumerRegistrar bridgeClientConsumerRegistrar(
+            ApplicationContext applicationContext) {
+        return new BridgeClientConsumerRegistrar(applicationContext);
+    }
 
     @Bean
     @ConditionalOnMissingBean
@@ -136,7 +151,7 @@ public class ServiceBridgeClientAutoConfiguration {
             BridgeCompletionCoordinator coordinator,
             BridgeResponseFactory responseFactory,
             MessageProducer producer,
-            BedrockSubscriptionMapper subscriptionMapper,
+            BridgeTopicProperties topics,
             PlatformTransactionManager transactionManager) {
         return new DefaultServiceBridgeClient(
                 properties,
@@ -146,7 +161,7 @@ public class ServiceBridgeClientAutoConfiguration {
                 coordinator,
                 responseFactory,
                 producer,
-                subscriptionMapper,
+                topics,
                 new TransactionTemplate(transactionManager));
     }
 
