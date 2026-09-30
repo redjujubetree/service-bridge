@@ -62,7 +62,7 @@ service:
 
 ```xml
 <dependency>
-    <groupId>com.lnsoft.erp</groupId>
+    <groupId>com.lnsoft.glxx</groupId>
     <artifactId>bridge-client-starter</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>
@@ -105,7 +105,7 @@ public class ReportController {
 
 ```xml
 <dependency>
-    <groupId>com.lnsoft.erp</groupId>
+    <groupId>com.lnsoft.glxx</groupId>
     <artifactId>bridge-server-starter</artifactId>
     <version>0.1.0-SNAPSHOT</version>
 </dependency>

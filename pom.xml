@@ -11,7 +11,7 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.lnsoft.erp</groupId>
+    <groupId>com.lnsoft.glxx</groupId>
     <artifactId>service-bridge-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
@@ -37,17 +37,17 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.lnsoft.erp</groupId>
+                <groupId>com.lnsoft.glxx</groupId>
                 <artifactId>bridge-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.lnsoft.erp</groupId>
+                <groupId>com.lnsoft.glxx</groupId>
                 <artifactId>bridge-client-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.lnsoft.erp</groupId>
+                <groupId>com.lnsoft.glxx</groupId>
                 <artifactId>bridge-server-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
