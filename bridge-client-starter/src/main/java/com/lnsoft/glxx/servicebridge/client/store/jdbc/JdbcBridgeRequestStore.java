@@ -11,6 +11,9 @@ import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 
+import java.io.IOException;
+import java.io.Reader;
+import java.io.StringReader;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -42,20 +45,23 @@ public class JdbcBridgeRequestStore implements BridgeRequestStore {
                 + "request_id, protocol_version, business_type, request_payload, "
                 + "wait_status, process_status, client_deadline_at, created_at, updated_at, version"
                 + ") VALUES ("
-                + ":requestId, :protocolVersion, :businessType, :requestPayload, "
-                + ":waitStatus, :processStatus, :clientDeadlineAt, :createdAt, :createdAt, 0)";
+                + "?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
 
-        MapSqlParameterSource params = new MapSqlParameterSource()
-                .addValue("requestId", request.getRequestId())
-                .addValue("protocolVersion", request.getProtocolVersion())
-                .addValue("businessType", request.getBusinessType())
-                .addValue("requestPayload", toJson(request))
-                .addValue("waitStatus", request.getWaitStatus().name())
-                .addValue("processStatus", request.getProcessStatus().name())
-                .addValue("clientDeadlineAt", Timestamp.valueOf(request.getClientDeadlineAt()))
-                .addValue("createdAt", Timestamp.valueOf(request.getCreatedAt()));
-
-        jdbc.update(sql, params);
+        String requestJson = toJson(request);
+        try (StringReader reader = new StringReader(requestJson)) {
+            jdbc.getJdbcTemplate().update(sql, ps -> {
+                ps.setString(1, request.getRequestId());
+                ps.setString(2, request.getProtocolVersion());
+                ps.setString(3, request.getBusinessType());
+                ps.setCharacterStream(4, reader, requestJson.length());
+                ps.setString(5, request.getWaitStatus().name());
+                ps.setString(6, request.getProcessStatus().name());
+                ps.setTimestamp(7, Timestamp.valueOf(request.getClientDeadlineAt()));
+                Timestamp createdAt = Timestamp.valueOf(request.getCreatedAt());
+                ps.setTimestamp(8, createdAt);
+                ps.setTimestamp(9, createdAt);
+            });
+        }
     }
 
     @Override
@@ -131,11 +137,28 @@ public class JdbcBridgeRequestStore implements BridgeRequestStore {
                 result.setBusinessType(rs.getString("business_type"));
                 result.setWaitStatus(BridgeWaitStatus.valueOf(rs.getString("wait_status")));
                 result.setProcessStatus(BridgeProcessStatus.valueOf(rs.getString("process_status")));
-                result.setResultPayload(rs.getString("result_payload"));
+                result.setResultPayload(readCharacterStream(rs, "result_payload"));
                 result.setErrorCode(rs.getString("error_code"));
                 result.setErrorMessage(rs.getString("error_message"));
                 return result;
             }
         };
+    }
+
+    private static String readCharacterStream(ResultSet rs, String column) throws SQLException {
+        try (Reader reader = rs.getCharacterStream(column)) {
+            if (reader == null) {
+                return null;
+            }
+            StringBuilder value = new StringBuilder();
+            char[] buffer = new char[8192];
+            int count;
+            while ((count = reader.read(buffer)) != -1) {
+                value.append(buffer, 0, count);
+            }
+            return value.toString();
+        } catch (IOException e) {
+            throw new SQLException("Failed to read " + column + " character stream", e);
+        }
     }
 }
