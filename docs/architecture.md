@@ -1,6 +1,6 @@
 # 架构与一致性
 
-Client Starter 维护本机 `requestId → DeferredResult`；Server Starter 执行业务并写结果；`bridge-protocol` 定义双方消息和状态。两个 Starter 依赖 `bridge-mq` 的统一接口；该模块内的 BedrockMQ、Kafka、RocketMQ 自动配置按 `service.bridge.mq.provider` 与客户端类是否存在分别启用。业务应用仅提供所选 MQ 的客户端依赖。Client 和 Server 必须使用相同的 provider 与 Topic。
+Client Starter 维护本机 `requestId → DeferredResult`；Server Starter 执行业务并写结果；`bridge-protocol` 定义双方消息和状态。两个 Starter 依赖 `bridge-mq` 的统一接口，该模块提供 BedrockMQ 适配实现。业务应用需提供 BedrockMQ 客户端依赖。Client 和 Server 必须配置相同的 `service.bridge.mq.provider: bedrock` 与 Topic。
 
 ## REQUEST 提交
 
@@ -10,7 +10,7 @@ Client 先注册 `WaitContext` 并提交 `service_bridge_request` 的 PENDING �
 
 Server 消费 REQUEST 后使用 `requestId` 和 `attemptToken` 取得处理权。未到期的 `PROCESSING` 请求不会被重复执行。Handler 完成后，Server 条件更新 SUCCESS/FAILED 并提交数据库事务；Client 仍等待时，在提交后发送 RESPONSE。RESPONSE 发送失败不会回滚已经提交的业务结果，Client 仍可通过数据库补查获得结果。
 
-MQ 消费成功后才确认消息。`BridgeRetryableException` 会先按 token 释放执行权，再由 MQ 重试。Kafka 将重试耗尽的消息送入 `.DLT` Topic；RocketMQ 使用其重试及死信机制；BedrockMQ 使用订阅重试。死信中的 REQUEST 需由运维排查或重放。业务 Handler 对外部系统产生的副作用必须按 `requestId` 幂等，数据库条件更新无法撤销外部副作用。
+MQ 消费成功后才确认消息。`BridgeRetryableException` 会先按 token 释放执行权，再由 BedrockMQ 订阅重试。重试耗尽后的 REQUEST 需由运维排查或重放。业务 Handler 对外部系统产生的副作用必须按 `requestId` 幂等，数据库条件更新无法撤销外部副作用。
 
 ## 超时恢复
 

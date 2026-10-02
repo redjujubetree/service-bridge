@@ -2,7 +2,7 @@
 
 ## 配置示例
 
-业务应用引入 `top.redjujubetree:bridge-client-starter:0.1.0-SNAPSHOT` 和 MySQL JDBC 驱动 `com.mysql:mysql-connector-j`，再按所选 MQ 引入**一种**客户端依赖：BedrockMQ 使用 `top.redjujubetree:bedrockmq-spring-boot-starter:0.0.7`，Kafka 使用 `org.springframework.kafka:spring-kafka`，RocketMQ 使用 `org.apache.rocketmq:rocketmq-client:4.9.8`。`bridge-mq` 不会传递引入这三种 MQ 客户端依赖。
+业务应用引入 `top.redjujubetree:bridge-client-starter:0.1.0-SNAPSHOT`、MySQL JDBC 驱动 `com.mysql:mysql-connector-j`，以及 BedrockMQ 客户端依赖 `top.redjujubetree:bedrockmq-spring-boot-starter:0.0.7`。
 
 以下示例中的 MySQL 数据库必须与 Server 共用，且已执行 ServiceBridge DDL。Redis Channel 在同一 Client 集群内保持一致。各示例的请求 Topic 和响应 Topic 均须与 Server 配置一致。
 
@@ -56,46 +56,6 @@ service:
 
 `request("ORDER", ...)` 发送到 `service-bridge.order.request`，`request("PAYMENT", ...)` 发送到 `service-bridge.payment.request`。映射非空时，`request("OTHER", ...)` 会在发送前报错。大写业务类型使用带引号的方括号键，以便 Spring Boot 保留原始大小写。Server 需要配置相同的映射并订阅这两个请求 Topic。
 
-### 示例三：Kafka
-
-此示例沿用示例一的 `spring.datasource`、`spring.redis` 和 `service.bridge.client` 配置，替换 BedrockMQ 相关配置，并引入 `spring-kafka` 依赖。Kafka 的请求、响应 Topic 及死信 Topic 需要预先创建。
-
-```yaml
-spring:
-  kafka:
-    bootstrap-servers: localhost:9092
-    producer:
-      acks: all
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.apache.kafka.common.serialization.StringSerializer
-    consumer:
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      enable-auto-commit: false
-
-service:
-  bridge:
-    mq:
-      provider: kafka
-    request-topic: service-bridge.request
-    response-topic: service-bridge.response
-```
-
-### 示例四：RocketMQ
-
-此示例也沿用示例一的 `spring.datasource`、`spring.redis` 和 `service.bridge.client` 配置，替换 BedrockMQ 相关配置，并引入 `rocketmq-client` 依赖。
-
-```yaml
-service:
-  bridge:
-    mq:
-      provider: rocketmq
-      rocketmq:
-        namesrv-addr: localhost:9876
-    request-topic: service-bridge.request
-    response-topic: service-bridge.response
-```
-
 ### 显式开启 Client 定时补偿
 
 上述示例默认不开启定时补偿。需要在完成通知丢失时定期补查数据库，可在任一示例的 `service.bridge.client` 下增加：
@@ -131,7 +91,7 @@ Controller 不应调用 `getResult()`、`Thread.sleep()` 或循环查询。直�
 
 多个业务分别发送到不同请求 Topic 时，配置 `service.bridge.request-topics` 映射，例如 `"[ORDER]": service-bridge.order.request`、`"[PAYMENT]": service-bridge.payment.request`。Client 按 `businessType` 选择 Topic：未配置映射或映射为空时，所有业务使用 `service.bridge.request-topic`（默认 `service-bridge.request`）；映射非空时，未列出的业务类型会在发送前报错。Client 与 Server 的映射应一致；响应 Topic 仍使用单个 `service.bridge.response-topic`。大写业务类型使用带引号的方括号键，保证 Spring Boot 原样绑定。
 
-Client 还需引入所选 MQ 的客户端依赖，并与 Server 配置相同的 `service.bridge.mq.provider`。
+Client 与 Server 都需引入 BedrockMQ 客户端依赖，并将 `service.bridge.mq.provider` 配置为 `bedrock`。
 
 Client 定时从数据库补查等待中的请求结果默认关闭。需要在完成通知丢失时提前补回 HTTP 响应，可显式配置 `service.bridge.client.reconciliation-enabled: true`；检查间隔由 `service.bridge.client.reconciliation-interval` 控制，默认 5 秒。关闭时，HTTP 超时回调仍会查询数据库中的最终结果。
 

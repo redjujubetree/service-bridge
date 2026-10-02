@@ -2,7 +2,7 @@
 
 ## 推荐启动顺序
 
-1. 执行 ServiceBridge DDL；BedrockMQ provider 还需执行其自身 DDL；
+1. 执行 ServiceBridge 和 BedrockMQ 的 DDL；
 2. 创建 REQUEST、RESPONSE Topic，启动 Server 消费者；
 3. 启动 Redis；
 4. 启动 Client；
@@ -16,7 +16,7 @@ Client 先提交请求行再发送 REQUEST。BedrockMQ 没有启用订阅者时�
 Client 与 Server 的 `service.bridge.request-topic` 和 `service.bridge.response-topic` 必须分别一致。
 
 使用多个请求 Topic 时，Client 与 Server 的 `service.bridge.request-topics` 映射也必须一致。每个请求 Topic 使用独立的 Server 消费组；响应 Topic 仍为单个配置。
-Client 与 Server 的 `service.bridge.mq.provider` 必须一致。BedrockMQ 的 Topic 不允许包含 `:`；Kafka 与 RocketMQ 使用各自的 Topic 命名规则。
+Client 与 Server 的 `service.bridge.mq.provider` 均设为 `bedrock`。BedrockMQ 的 Topic 不允许包含 `:`。
 
 同一 Server 集群必须加载相同 `businessType` Handler 集合。
 
@@ -32,7 +32,7 @@ Client 与 Server 的 `service.bridge.mq.provider` 必须一致。BedrockMQ 的 
 - Server stale token 更新失败数量；
 - REQUEST/RESPONSE 发送失败数量及 `MQ_SEND_FAILED` 请求数量；
 - 到期 PROCESSING 数量及恢复终结数量；
-- 所选 MQ 的消费滞后、重试和死信数量。
+- BedrockMQ 的消费滞后、重试和死信数量。
 
 ## 日志安全
 
@@ -48,7 +48,7 @@ Client 与 Server 的 `service.bridge.mq.provider` 必须一致。BedrockMQ 的 
 | 故障 | 行为 |
 |---|---|
 | Redis 通知丢失 | 默认在 HTTP 超时回调中读取数据库结果；显式开启 Client 定时补偿后可提前发现结果 |
-| Redis 发布失败 | RESPONSE 消费抛异常，由所选 MQ 重试 |
+| Redis 发布失败 | RESPONSE 消费抛异常，由 BedrockMQ 重试 |
 | Client 实例重启 | HTTP 连接断开，后台任务和结果仍保留 |
 | Server 实例崩溃 | 数据库到期租约检查终结 PROCESSING 请求 |
 | REQUEST 发送失败 | 请求标记为 FAILED，HTTP 返回 503 |

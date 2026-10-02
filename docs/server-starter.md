@@ -15,7 +15,7 @@ public interface BridgeRequestHandler {
 }
 ```
 
-Handler 必须使用 `requestId` 保证业务幂等。所有 MQ 适配器都是至少一次投递，数据库 CAS 只能保护 ServiceBridge 结果行，不能自动撤销已发生的外部调用、文件写入、支付或通知。
+Handler 必须使用 `requestId` 保证业务幂等。BedrockMQ 按至少一次投递处理，数据库 CAS 只能保护 ServiceBridge 结果行，不能自动撤销已发生的外部调用、文件写入、支付或通知。
 
 ## Handler 返回语义
 

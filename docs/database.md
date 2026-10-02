@@ -50,4 +50,4 @@ WHERE request_id = :requestId
 
 ServiceBridge 仅支持 MySQL 5.7 及以上版本。Starter 默认不自动执行 DDL，防止生产环境隐式变更数据库。请通过 Flyway、Liquibase 或现有发布流程执行 `bridge-protocol/src/main/resources/db/service-bridge-schema-mysql.sql`。
 
-Client 与 Server 使用同一个业务数据库。REQUEST 发送失败时，Client 将请求行更新为 FAILED。选择 BedrockMQ 时另需创建其自带的三张表。
+Client 与 Server 使用同一个业务数据库。REQUEST 发送失败时，Client 将请求行更新为 FAILED。还需创建 BedrockMQ 自带的三张表。
