@@ -1,0 +1,5 @@
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+top.redjujubetree.servicebridge.mq.BridgeMqAutoConfiguration,\
+top.redjujubetree.servicebridge.mq.bedrock.BedrockBridgeAutoConfiguration,\
+top.redjujubetree.servicebridge.mq.kafka.KafkaBridgeAutoConfiguration,\
+top.redjujubetree.servicebridge.mq.rocketmq.RocketBridgeAutoConfiguration

@@ -29,15 +29,13 @@ bedrock:
 
 service:
   bridge:
+    mq:
+      provider: bedrock
     request-topic: ${SERVICE_BRIDGE_REQUEST_TOPIC:service-bridge.request}
     response-topic: ${SERVICE_BRIDGE_RESPONSE_TOPIC:service-bridge.response}
     client:
       timeout: 60s
-      message-source: ${spring.application.name}-client
       redis-channel: ${spring.application.name}:service-bridge:completed
-      reconciliation-enabled: true
-      reconciliation-interval: 5s
     server:
-      message-source: ${spring.application.name}-server
       processing-timeout: 15m
       recovery-enabled: true

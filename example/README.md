@@ -1,16 +1,26 @@
 # ServiceBridge Example
 
-该模块在同一个 Spring Boot 应用中同时启用 Client Starter 和 Server Starter，演示完整链路：
+该模块在同一个 Spring Boot 应用中同时启用 Client Starter 和 Server Starter，演示两个业务共用一个请求 Topic：
 
 ```text
 POST /reports
   → ServiceBridgeClient
-  → BedrockMQ REQUEST
+  → service-bridge.request
   → GenerateReportHandler
-  → BedrockMQ RESPONSE
+  → service-bridge.response
+  → Redis 通知
+  → HTTP 响应
+
+POST /invoices/validate
+  → ServiceBridgeClient
+  → service-bridge.request
+  → ValidateInvoiceHandler
+  → service-bridge.response
   → Redis 通知
   → HTTP 响应
 ```
+
+`application.yml` 中的 `service.bridge.request-topic` 让 `GENERATE_REPORT` 和 `VALIDATE_INVOICE` 共用请求 Topic，可用 `SERVICE_BRIDGE_REQUEST_TOPIC` 覆盖；响应 Topic 可用 `SERVICE_BRIDGE_RESPONSE_TOPIC` 覆盖。BedrockMQ 的 `message-source` 未显式配置，默认使用 `spring.application.name`。
 
 ## 1. 启动 MySQL 和 Redis
 
@@ -62,5 +72,15 @@ curl -X POST http://localhost:8080/reports \
 ```bash
 curl http://localhost:8080/reports/{requestId}
 ```
+
+发票校验使用同一个请求 Topic：
+
+```bash
+curl -X POST http://localhost:8080/invoices/validate \
+  -H 'Content-Type: application/json' \
+  -d '{"invoiceNumber":"INV-001","amount":128.50}'
+```
+
+`invoiceNumber` 为空或 `amount` 不大于零时，Handler 会返回 `INVALID_INVOICE`。
 
 示例为了便于本地运行才将 Client 和 Server 合并在同一应用中。真实部署可分别引入 `bridge-client-starter` 和 `bridge-server-starter`，但必须共用同一个 MySQL 数据库。

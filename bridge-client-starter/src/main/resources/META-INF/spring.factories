@@ -1,2 +1,2 @@
 org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
-com.lnsoft.glxx.servicebridge.client.autoconfigure.ServiceBridgeClientAutoConfiguration
+top.redjujubetree.servicebridge.client.autoconfigure.ServiceBridgeClientAutoConfiguration

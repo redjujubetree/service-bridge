@@ -11,16 +11,17 @@
         <relativePath/>
     </parent>
 
-    <groupId>com.lnsoft.glxx</groupId>
+    <groupId>top.redjujubetree</groupId>
     <artifactId>service-bridge-parent</artifactId>
     <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>ServiceBridge</name>
-    <description>Database-backed asynchronous request/response bridge based on BedrockMQ and Redis Pub/Sub</description>
+    <description>Database-backed asynchronous request/response bridge with selectable MQ transport</description>
 
     <modules>
         <module>bridge-protocol</module>
+        <module>bridge-mq</module>
         <module>bridge-client-starter</module>
         <module>bridge-server-starter</module>
         <module>example</module>
@@ -32,22 +33,28 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <bedrockmq.version>0.0.7</bedrockmq.version>
+        <rocketmq.version>4.9.8</rocketmq.version>
     </properties>
 
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.lnsoft.glxx</groupId>
+                <groupId>top.redjujubetree</groupId>
+                <artifactId>bridge-mq</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>top.redjujubetree</groupId>
                 <artifactId>bridge-protocol</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.lnsoft.glxx</groupId>
+                <groupId>top.redjujubetree</groupId>
                 <artifactId>bridge-client-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.lnsoft.glxx</groupId>
+                <groupId>top.redjujubetree</groupId>
                 <artifactId>bridge-server-starter</artifactId>
                 <version>${project.version}</version>
             </dependency>

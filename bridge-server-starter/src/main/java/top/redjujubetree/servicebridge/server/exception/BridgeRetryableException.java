@@ -1,0 +1,12 @@
+package top.redjujubetree.servicebridge.server.exception;
+
+public class BridgeRetryableException extends RuntimeException {
+
+    public BridgeRetryableException(String message) {
+        super(message);
+    }
+
+    public BridgeRetryableException(String message, Throwable cause) {
+        super(message, cause);
+    }
+}

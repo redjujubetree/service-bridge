@@ -1,0 +1,7 @@
+{
+  "properties": [
+    {"name":"service.bridge.mq.provider","type":"java.lang.String","description":"Selected MQ provider: bedrock, kafka or rocketmq."},
+    {"name":"service.bridge.mq.bedrock.message-source","type":"java.lang.String","description":"BedrockMQ message source. Defaults to spring.application.name."},
+    {"name":"service.bridge.mq.rocketmq.namesrv-addr","type":"java.lang.String","description":"RocketMQ name server addresses."}
+  ]
+}
