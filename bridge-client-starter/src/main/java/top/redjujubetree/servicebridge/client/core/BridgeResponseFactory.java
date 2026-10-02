@@ -5,7 +5,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.client.model.BridgeHttpResponse;
 import top.redjujubetree.servicebridge.client.model.BridgeStoredResult;
-import top.redjujubetree.servicebridge.protocol.BridgeProcessStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 

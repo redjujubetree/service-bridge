@@ -1,4 +1,4 @@
-package top.redjujubetree.servicebridge.protocol;
+package top.redjujubetree.servicebridge.protocol.validation;
 
 public class BridgeProtocolException extends RuntimeException {
 

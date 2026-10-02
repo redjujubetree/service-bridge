@@ -2,9 +2,9 @@ package top.redjujubetree.servicebridge.client.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.mq.BridgeInboundHandler;
-import top.redjujubetree.servicebridge.protocol.BridgeMessageValidator;
-import top.redjujubetree.servicebridge.protocol.BridgeResponseMessage;
-import top.redjujubetree.servicebridge.protocol.BridgeTopicProperties;
+import top.redjujubetree.servicebridge.protocol.validation.BridgeMessageValidator;
+import top.redjujubetree.servicebridge.protocol.message.BridgeResponseMessage;
+import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
 
 public class BridgeResponseInboundHandler implements BridgeInboundHandler {

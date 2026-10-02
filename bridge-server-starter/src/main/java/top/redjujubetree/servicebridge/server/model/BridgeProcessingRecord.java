@@ -1,6 +1,6 @@
 package top.redjujubetree.servicebridge.server.model;
 
-import top.redjujubetree.servicebridge.protocol.BridgeProcessStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 
 import java.time.LocalDateTime;
 

@@ -18,6 +18,6 @@ Server 周期性查询 `PROCESSING` 且 `processing_expires_at` 已到期的行�
 
 ## RESPONSE 与 Redis
 
-Client 集群中的一个实例消费 RESPONSE，向 Redis 发布只含请求标识和终态的通知。所有 Client 实例接收广播，只有持有该请求 `WaitContext` 的实例查数据库并完成 HTTP 响应。Redis Pub/Sub 不持久化通知，Client 还会在 REQUEST 提交后立即补查、周期性补查，并在 HTTP 超时回调中执行数据库检查。
+Client 集群中的一个实例消费 RESPONSE，并把不含请求或结果正文的 RESPONSE 消息发布到 Redis；消息包含请求 ID、业务类型、处理状态等元数据。所有 Client 实例接收广播，只有持有该请求 `WaitContext` 的实例查数据库并完成 HTTP 响应。Redis Pub/Sub 不持久化通知，Client 会在 REQUEST 发送后立即补查，并在 HTTP 超时回调中检查数据库；周期性补查默认关闭，须显式设置 `service.bridge.client.reconciliation-enabled: true` 才会启用。
 
 `wait_status` 和 `process_status` 独立。HTTP 已超时但后台执行成功时，允许 `TIMED_OUT / SUCCESS`；结果仍可通过查询接口读取。

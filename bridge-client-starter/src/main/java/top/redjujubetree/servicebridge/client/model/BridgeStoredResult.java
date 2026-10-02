@@ -1,7 +1,7 @@
 package top.redjujubetree.servicebridge.client.model;
 
-import top.redjujubetree.servicebridge.protocol.BridgeProcessStatus;
-import top.redjujubetree.servicebridge.protocol.BridgeWaitStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeWaitStatus;
 
 public class BridgeStoredResult {
 

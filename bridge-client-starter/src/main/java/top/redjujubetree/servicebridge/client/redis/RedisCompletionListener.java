@@ -2,8 +2,8 @@ package top.redjujubetree.servicebridge.client.redis;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.client.core.BridgeCompletionCoordinator;
-import top.redjujubetree.servicebridge.protocol.BridgeMessageValidator;
-import top.redjujubetree.servicebridge.protocol.BridgeResponseMessage;
+import top.redjujubetree.servicebridge.protocol.validation.BridgeMessageValidator;
+import top.redjujubetree.servicebridge.protocol.message.BridgeResponseMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.connection.Message;

@@ -1,17 +1,16 @@
-package top.redjujubetree.servicebridge.protocol;
+package top.redjujubetree.servicebridge.protocol.message;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 
-public class BridgeRequestMessage {
+public class BridgeResponseMessage {
 
     private String protocolVersion;
     private String messageId;
     private String requestId;
     private String businessType;
-    private JsonNode payload;
-    private long createdAt;
-    private long clientDeadlineAt;
-    private String traceId;
+    private BridgeProcessStatus processStatus;
+    private long completedAt;
+    private String errorCode;
 
     public String getProtocolVersion() {
         return protocolVersion;
@@ -45,35 +44,27 @@ public class BridgeRequestMessage {
         this.businessType = businessType;
     }
 
-    public JsonNode getPayload() {
-        return payload;
+    public BridgeProcessStatus getProcessStatus() {
+        return processStatus;
     }
 
-    public void setPayload(JsonNode payload) {
-        this.payload = payload;
+    public void setProcessStatus(BridgeProcessStatus processStatus) {
+        this.processStatus = processStatus;
     }
 
-    public long getCreatedAt() {
-        return createdAt;
+    public long getCompletedAt() {
+        return completedAt;
     }
 
-    public void setCreatedAt(long createdAt) {
-        this.createdAt = createdAt;
+    public void setCompletedAt(long completedAt) {
+        this.completedAt = completedAt;
     }
 
-    public long getClientDeadlineAt() {
-        return clientDeadlineAt;
+    public String getErrorCode() {
+        return errorCode;
     }
 
-    public void setClientDeadlineAt(long clientDeadlineAt) {
-        this.clientDeadlineAt = clientDeadlineAt;
-    }
-
-    public String getTraceId() {
-        return traceId;
-    }
-
-    public void setTraceId(String traceId) {
-        this.traceId = traceId;
+    public void setErrorCode(String errorCode) {
+        this.errorCode = errorCode;
     }
 }

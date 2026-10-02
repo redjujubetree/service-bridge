@@ -1,4 +1,4 @@
-package top.redjujubetree.servicebridge.protocol;
+package top.redjujubetree.servicebridge.protocol.status;
 
 public enum BridgeWaitStatus {
     WAITING,

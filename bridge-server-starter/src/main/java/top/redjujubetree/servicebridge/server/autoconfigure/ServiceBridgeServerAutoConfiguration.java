@@ -1,7 +1,7 @@
 package top.redjujubetree.servicebridge.server.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import top.redjujubetree.servicebridge.protocol.BridgeTopicProperties;
+import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import top.redjujubetree.servicebridge.mq.BridgeMessagePublisher;
 import top.redjujubetree.servicebridge.server.config.ServiceBridgeServerProperties;
 import top.redjujubetree.servicebridge.server.consumer.BridgeRequestInboundHandler;

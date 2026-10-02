@@ -2,7 +2,7 @@ package top.redjujubetree.servicebridge.client.core;
 
 import top.redjujubetree.servicebridge.client.model.BridgeStoredResult;
 import top.redjujubetree.servicebridge.client.store.BridgeRequestStore;
-import top.redjujubetree.servicebridge.protocol.BridgeWaitStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeWaitStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.time.LocalDateTime;

@@ -1,8 +1,8 @@
 package top.redjujubetree.servicebridge.client.model;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import top.redjujubetree.servicebridge.protocol.BridgeProcessStatus;
-import top.redjujubetree.servicebridge.protocol.BridgeWaitStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeWaitStatus;
 
 import java.time.LocalDateTime;
 

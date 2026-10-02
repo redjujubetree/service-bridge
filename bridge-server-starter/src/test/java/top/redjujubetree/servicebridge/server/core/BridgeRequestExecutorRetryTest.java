@@ -1,7 +1,7 @@
 package top.redjujubetree.servicebridge.server.core;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import top.redjujubetree.servicebridge.protocol.BridgeRequestMessage;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
 import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
 import top.redjujubetree.servicebridge.server.config.ServiceBridgeServerProperties;
 import top.redjujubetree.servicebridge.server.exception.BridgeRetryableException;

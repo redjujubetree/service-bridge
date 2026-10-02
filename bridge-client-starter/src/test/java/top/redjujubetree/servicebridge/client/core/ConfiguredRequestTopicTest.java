@@ -4,7 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.client.config.ServiceBridgeClientProperties;
 import top.redjujubetree.servicebridge.client.store.BridgeRequestStore;
 import top.redjujubetree.servicebridge.mq.BridgeMessagePublisher;
-import top.redjujubetree.servicebridge.protocol.BridgeTopicProperties;
+import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assertions;

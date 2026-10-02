@@ -1,6 +1,6 @@
 package top.redjujubetree.servicebridge.server.core;
 
-import top.redjujubetree.servicebridge.protocol.BridgeProcessStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 import top.redjujubetree.servicebridge.server.model.BridgeProcessingRecord;
 import top.redjujubetree.servicebridge.server.store.BridgeResultStore;
 import org.junit.jupiter.api.Test;

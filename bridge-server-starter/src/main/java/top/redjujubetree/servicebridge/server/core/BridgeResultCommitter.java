@@ -1,9 +1,9 @@
 package top.redjujubetree.servicebridge.server.core;
 
-import top.redjujubetree.servicebridge.protocol.BridgeProcessStatus;
-import top.redjujubetree.servicebridge.protocol.BridgeRequestMessage;
-import top.redjujubetree.servicebridge.protocol.BridgeResponseMessage;
-import top.redjujubetree.servicebridge.protocol.BridgeTopicProperties;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
+import top.redjujubetree.servicebridge.protocol.message.BridgeResponseMessage;
+import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
 import top.redjujubetree.servicebridge.mq.BridgeMessagePublisher;
 import top.redjujubetree.servicebridge.server.store.BridgeResultStore;

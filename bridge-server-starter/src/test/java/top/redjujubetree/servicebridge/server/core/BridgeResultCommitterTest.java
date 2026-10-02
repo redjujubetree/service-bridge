@@ -1,7 +1,7 @@
 package top.redjujubetree.servicebridge.server.core;
 
-import top.redjujubetree.servicebridge.protocol.BridgeRequestMessage;
-import top.redjujubetree.servicebridge.protocol.BridgeTopicProperties;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
+import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import top.redjujubetree.servicebridge.server.store.BridgeResultStore;
 import top.redjujubetree.servicebridge.mq.BridgeMessagePublisher;
 import org.junit.jupiter.api.BeforeEach;

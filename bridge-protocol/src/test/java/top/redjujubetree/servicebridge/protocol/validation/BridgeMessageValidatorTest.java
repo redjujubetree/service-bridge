@@ -1,6 +1,8 @@
-package top.redjujubetree.servicebridge.protocol;
+package top.redjujubetree.servicebridge.protocol.validation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;

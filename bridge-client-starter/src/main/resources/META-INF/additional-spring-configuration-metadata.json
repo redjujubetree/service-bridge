@@ -1,7 +1,7 @@
 {
   "properties": [
     {"name":"service.bridge.request-topic","type":"java.lang.String","defaultValue":"service-bridge.request","description":"REQUEST topic shared by Client and Server."},
-    {"name":"service.bridge.request-topics","type":"java.util.Map<java.lang.String,java.lang.String>","description":"Business type to REQUEST topic mapping. When configured, only listed business types are accepted."},
+    {"name":"service.bridge.request-topics","type":"java.util.Map<java.lang.String,java.lang.String>","description":"Business type to REQUEST topic mapping. A nonempty mapping accepts only listed business types; an empty mapping uses request-topic."},
     {"name":"service.bridge.response-topic","type":"java.lang.String","defaultValue":"service-bridge.response","description":"RESPONSE topic shared by Client and Server."},
     {"name":"service.bridge.client.enabled","type":"java.lang.Boolean","defaultValue":true,"description":"Enable ServiceBridge client auto-configuration."},
     {"name":"service.bridge.client.timeout","type":"java.time.Duration","defaultValue":"60s","description":"Maximum time an HTTP request waits for a result."},

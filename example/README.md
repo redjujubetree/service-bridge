@@ -30,7 +30,7 @@ POST /invoices/validate
 docker compose -f example/docker-compose.yml up -d
 ```
 
-`application.yml` 默认连接 `localhost:3306/service_bridge` 和 `localhost:6379`。示例启动时会自动执行 BedrockMQ 和 ServiceBridge 的 MySQL DDL；此配置仅用于本地演示，生产环境应使用 Flyway、Liquibase 或发布流程管理 Schema。
+`docker-compose.yml` 创建 `service_bridge` 数据库（账号和密码均为 `service_bridge`），Redis 不设密码。`application.yml` 的默认连接参数与之匹配，启动时会按 `spring.sql.init` 配置执行 BedrockMQ 和 ServiceBridge 的 MySQL DDL。生产环境应使用 Flyway、Liquibase 或发布流程管理 Schema。
 
 ## 2. 构建并运行
 
@@ -39,7 +39,7 @@ mvn -pl example -am clean package
 java -jar example/target/service-bridge-example-0.1.0-SNAPSHOT.jar
 ```
 
-如果默认端口或账号不适用，可通过 `SERVER_PORT`、`MYSQL_URL`、`MYSQL_USERNAME`、`MYSQL_PASSWORD`、`REDIS_HOST`、`REDIS_PORT` 和 `REDIS_PASSWORD` 覆盖。多实例运行时，每个实例还应设置唯一的 `BEDROCK_NODE_ID`。
+如需连接其他服务，可通过 `SERVER_PORT`、`MYSQL_URL`、`MYSQL_USERNAME`、`MYSQL_PASSWORD`、`REDIS_HOST`、`REDIS_PORT` 和 `REDIS_PASSWORD` 覆盖连接参数。多实例运行时，每个实例还应设置唯一的 `BEDROCK_NODE_ID`。
 
 ## 3. 发起请求
 
@@ -56,7 +56,7 @@ curl -X POST http://localhost:8080/reports \
 {
   "requestId": "7a5b9e0d-6f5b-4e50-a6e8-9de3dcaf95d8",
   "code": "SUCCESS",
-  "message": "Success",
+  "message": null,
   "data": {
     "requestId": "7a5b9e0d-6f5b-4e50-a6e8-9de3dcaf95d8",
     "reportName": "monthly-sales",

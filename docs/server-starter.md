@@ -43,7 +43,7 @@ throw new BridgeRetryableException("下游暂时不可用", cause);
 
 ## 执行令牌
 
-每次消费都会创建随机 `attemptToken` 并写入任务表。完成 SQL 必须同时匹配：
+每次消费尝试都会创建随机 `attemptToken`；取得处理权后才会将其写入请求表。完成 SQL 必须同时匹配：
 
 ```sql
 WHERE request_id = :requestId
@@ -63,11 +63,11 @@ WHERE request_id = :requestId
 条件更新结果 + 检查 Client 等待状态，提交后发送 RESPONSE 通知
 ```
 
-这样避免长时间持有数据库事务。代价是 Handler 的业务副作用必须自行保证幂等。如果业务必须把自身数据库更新与 ServiceBridge 结果放入同一事务，可以在 Handler 内部使用同一事务管理器，但应评估长事务风险。
+这样避免长时间持有数据库事务。Handler 的业务副作用必须自行保证幂等。Handler 内自行开启的事务会在 ServiceBridge 结果事务之前完成，因此当前默认流程不保证业务写入和 ServiceBridge 结果写入的原子性；如业务要求两者同事务，需要定制执行流程与事务边界。
 
 ## PROCESSING 恢复
 
-可重试异常或进程崩溃可能让任务停留在 PROCESSING。Server 默认每 5 秒批量检查到期记录，仅在原 token 有效且 `processing_expires_at` 已到期时更新 FAILED；Client 仍在等待且未过截止时间时发送 RESPONSE。可用 `service.bridge.server.recovery-interval-ms` 调整检查间隔。
+进程崩溃、执行超时或重试状态释放失败可能让任务停留在 PROCESSING。Server 默认每 5 秒最多检查 100 条到期记录，仅在原 token 有效且 `processing_expires_at` 已到期时更新 FAILED；Client 仍在等待且未过截止时间时发送 RESPONSE。可用 `service.bridge.server.recovery-interval-ms` 调整检查间隔。
 
 `processing-timeout` 是后台单次执行权期限，不是 Client HTTP 超时。
 

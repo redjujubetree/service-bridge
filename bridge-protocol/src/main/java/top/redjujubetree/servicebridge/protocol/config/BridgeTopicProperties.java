@@ -1,4 +1,6 @@
-package top.redjujubetree.servicebridge.protocol;
+package top.redjujubetree.servicebridge.protocol.config;
+
+import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
 
 import java.util.ArrayList;
 import java.util.Collection;

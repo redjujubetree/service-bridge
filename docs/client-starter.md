@@ -40,7 +40,7 @@ service:
       max-waiting-requests: 10000
 ```
 
-此配置下，`request("ORDER", ...)` 和 `request("PAYMENT", ...)` 都发送到 `service-bridge.request`。BedrockMQ 的 `message-source` 默认取 `spring.application.name`；需要覆盖时再配置 `service.bridge.mq.bedrock.message-source`。
+此配置下，`request("ORDER", ...)` 和 `request("PAYMENT", ...)` 都发送到 `service-bridge.request`。BedrockMQ 的 `message-source` 优先取显式配置，其次取 `spring.application.name`；两者都未配置时使用 `bridge-client-starter`。
 
 ### 示例二：BedrockMQ，按业务使用不同请求 Topic
 

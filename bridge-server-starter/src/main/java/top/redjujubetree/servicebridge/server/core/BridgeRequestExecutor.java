@@ -2,8 +2,8 @@ package top.redjujubetree.servicebridge.server.core;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import top.redjujubetree.servicebridge.protocol.BridgeMessageValidator;
-import top.redjujubetree.servicebridge.protocol.BridgeRequestMessage;
+import top.redjujubetree.servicebridge.protocol.validation.BridgeMessageValidator;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
 import top.redjujubetree.servicebridge.server.config.ServiceBridgeServerProperties;
 import top.redjujubetree.servicebridge.server.exception.BridgeRetryableException;
 import top.redjujubetree.servicebridge.server.exception.UnsupportedBusinessTypeException;

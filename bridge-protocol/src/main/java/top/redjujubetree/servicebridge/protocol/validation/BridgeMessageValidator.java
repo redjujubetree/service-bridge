@@ -1,4 +1,8 @@
-package top.redjujubetree.servicebridge.protocol;
+package top.redjujubetree.servicebridge.protocol.validation;
+
+import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
+import top.redjujubetree.servicebridge.protocol.message.BridgeResponseMessage;
 
 public final class BridgeMessageValidator {
 

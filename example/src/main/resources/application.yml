@@ -5,14 +5,14 @@ spring:
   application:
     name: service-bridge-example
   datasource:
-    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/kenny_test?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
-    username: ${MYSQL_USERNAME:kenny}
-    password: ${MYSQL_PASSWORD:12345@Qwert}
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3306/service_bridge?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:service_bridge}
+    password: ${MYSQL_PASSWORD:service_bridge}
     driver-class-name: com.mysql.cj.jdbc.Driver
   redis:
     host: ${REDIS_HOST:localhost}
     port: ${REDIS_PORT:6379}
-    password: ${REDIS_PASSWORD:123456}
+    password: ${REDIS_PASSWORD:}
   sql:
     init:
       mode: always

@@ -1,6 +1,6 @@
 package top.redjujubetree.servicebridge.server.store.jdbc;
 
-import top.redjujubetree.servicebridge.protocol.BridgeProcessStatus;
+import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 import top.redjujubetree.servicebridge.server.model.AcquireResult;
 import top.redjujubetree.servicebridge.server.model.BridgeProcessingRecord;
 import top.redjujubetree.servicebridge.server.store.BridgeResultStore;

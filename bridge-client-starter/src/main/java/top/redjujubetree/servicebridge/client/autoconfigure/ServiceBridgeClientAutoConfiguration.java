@@ -1,7 +1,7 @@
 package top.redjujubetree.servicebridge.client.autoconfigure;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import top.redjujubetree.servicebridge.protocol.BridgeTopicProperties;
+import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import top.redjujubetree.servicebridge.client.config.ServiceBridgeClientProperties;
 import top.redjujubetree.servicebridge.client.core.BridgeCompletionCoordinator;
 import top.redjujubetree.servicebridge.client.core.BridgeReconciliationScheduler;

@@ -1,6 +1,6 @@
 # ServiceBridge
 
-ServiceBridge 是基于 Spring Boot 2.7 的异步请求响应桥接组件。Client 接收 HTTP JSON 请求并异步等待；Server 消费 REQUEST、执行业务并写入共享数据库；Client 通过 RESPONSE 和 Redis Pub/Sub 唤醒原 HTTP 连接。MQ 可选 BedrockMQ、Kafka 或 RocketMQ。
+ServiceBridge 是基于 Spring Boot 2.7 的异步请求响应桥接组件。业务 HTTP Controller 调用 Client 后异步等待；Server 消费 REQUEST、执行业务并写入共享数据库；Client 通过 RESPONSE 和 Redis Pub/Sub 唤醒原 HTTP 连接。MQ 可选 BedrockMQ、Kafka 或 RocketMQ。
 
 ## 模块
 

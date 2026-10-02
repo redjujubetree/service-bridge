@@ -6,9 +6,10 @@
 
 | 字段组 | 写入方 |
 |---|---|
-| request、business_type、request_payload、client_deadline | Client |
-| wait_status、responded_at | Client |
-| process_status、result/error、processing token/deadline | Server |
+| `request_id`、`protocol_version`、`business_type`、`request_payload`、`client_deadline_at`、`created_at` | Client 创建请求时写入 |
+| `wait_status`、`responded_at` | Client 创建时置 `WAITING`，之后更新为响应或超时状态 |
+| `process_status`、`processing_token`、`processing_started_at`、`processing_expires_at`、`result_payload`、`error_code`、`error_message`、`process_completed_at` | Client 创建时将处理状态置为 `PENDING`；Server 处理时更新；Client 在 REQUEST 发送失败时也会更新处理状态和错误信息 |
+| `updated_at`、`version` | Client 和 Server 更新记录时共同维护 |
 
 ## 等待状态
 
@@ -21,7 +22,9 @@ WAITING → TIMED_OUT
 
 ```text
 PENDING → PROCESSING → SUCCESS
-                   └→ FAILED
+    │          ├────→ FAILED
+    │          └────→ PENDING（可重试异常）
+    └───────────────→ FAILED（REQUEST 发送失败）
 ```
 
 HTTP 超时不修改 `process_status`，Server 完成结果时不以 `wait_status` 限制结果落库；只有发送 RESPONSE 前才检查等待状态和截止时间。
@@ -32,7 +35,10 @@ Client 超时 SQL 只允许未完成任务进入 TIMED_OUT：
 
 ```sql
 UPDATE service_bridge_request
-SET wait_status = 'TIMED_OUT'
+SET wait_status = 'TIMED_OUT',
+    responded_at = :timedOutAt,
+    updated_at = :timedOutAt,
+    version = version + 1
 WHERE request_id = :requestId
   AND wait_status = 'WAITING'
   AND process_status IN ('PENDING', 'PROCESSING');
