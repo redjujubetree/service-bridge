@@ -107,10 +107,5 @@ Kafka 需预建 REQUEST、RESPONSE 及各自的 `.DLT` Topic，DLT 分区数应�
 
 三个适配器都按 consumer group 竞争消费：同一请求 Topic 的 Server 实例使用相同消费组，不同请求 Topic 使用不同消费组；Client 实例使用 `service-bridge-client` 消费组。每个 Server 逻辑集群应加载相同的 Handler 集合；不同业务集群应使用不同 REQUEST Topic。
 
-## 构建
-
-```bash
-mvn clean test
-```
 
 更多说明见 [架构与一致性](docs/architecture.md)、[Client Starter](docs/client-starter.md)、[Server Starter](docs/server-starter.md)、[数据库](docs/database.md) 和 [运维](docs/operations.md)。
