@@ -103,7 +103,7 @@ spring:
       enable-auto-commit: false
 ```
 
-Kafka 需预建 REQUEST、RESPONSE 及各自的 `.DLT` Topic，DLT 分区数应不少于源 Topic。选择 RocketMQ 4.x 时，将 provider 改为 `rocketmq` 并配置 `service.bridge.mq.rocketmq.namesrv-addr`；重试耗尽的消息由 RocketMQ 放入死信队列。BedrockMQ 的 `message-source` 默认使用 `spring.application.name`，也可通过 `service.bridge.mq.bedrock.message-source` 覆盖；发送时要求有启用的订阅者。
+Kafka 需预建 REQUEST、RESPONSE 及各自的 `.DLT` Topic，DLT 分区数应不少于源 Topic。选择 RocketMQ 4.x 时，将 provider 改为 `rocketmq` 并配置 `service.bridge.mq.rocketmq.namesrv-addr`；重试耗尽的消息由 RocketMQ 放入死信队列。
 
 三个适配器都按 consumer group 竞争消费：同一请求 Topic 的 Server 实例使用相同消费组，不同请求 Topic 使用不同消费组；Client 实例使用 `service-bridge-client` 消费组。每个 Server 逻辑集群应加载相同的 Handler 集合；不同业务集群应使用不同 REQUEST Topic。
 
