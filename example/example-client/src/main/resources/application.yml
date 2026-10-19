@@ -1,0 +1,45 @@
+server:
+  port: ${SERVER_PORT:8888}
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:service-bridge-example-client}
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3307/service_bridge?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:12345678}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:12345678}
+    database: ${REDIS_DATABASE:9}
+  sql:
+    init:
+      mode: always
+      schema-locations:
+        - classpath:schema-mysql.sql
+        - classpath:db/service-bridge-schema-mysql.sql
+  mvc:
+    async:
+      request-timeout: ${SPRING_MVC_ASYNC_REQUEST_TIMEOUT:70s}
+
+bedrock:
+  mq:
+    db-dialect: mysql
+    node-id: ${BEDROCK_NODE_ID:service-bridge-example-client-1}
+    poll-interval-ms: 500
+    processing-timeout-minutes: 15
+
+service:
+  bridge:
+    mq:
+      provider: bedrock
+    client:
+      timeout: ${BRIDGE_CLIENT_TIMEOUT:60s}
+      message-source: ${BRIDGE_MESSAGE_SOURCE:${spring.application.name}}
+      redis-channel: ${REDIS_CHANNEL:local:service-bridge:completed}
+      max-waiting-requests: ${BRIDGE_MAX_WAITING_REQUESTS:10000}
+      require-active-subscriber: ${BRIDGE_REQUIRE_ACTIVE_SUBSCRIBER:true}
+      reconciliation-enabled: ${BRIDGE_RECONCILIATION_ENABLED:true}
+      reconciliation-interval: ${BRIDGE_RECONCILIATION_INTERVAL:5s}

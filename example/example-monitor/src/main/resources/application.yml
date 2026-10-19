@@ -1,0 +1,25 @@
+server:
+  port: ${SERVER_PORT:8899}
+
+spring:
+  application:
+    name: ${SPRING_APPLICATION_NAME:service-bridge-example-monitor}
+  datasource:
+    url: ${MYSQL_URL:jdbc:mysql://localhost:3307/service_bridge?useUnicode=true&characterEncoding=utf8&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=Asia/Shanghai}
+    username: ${MYSQL_USERNAME:root}
+    password: ${MYSQL_PASSWORD:12345678}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:12345678}
+    database: ${REDIS_DATABASE:9}
+
+service:
+  bridge:
+    mq:
+      provider: bedrock
+
+example:
+  monitor:
+    redis-channel: ${REDIS_CHANNEL:local:service-bridge:completed}

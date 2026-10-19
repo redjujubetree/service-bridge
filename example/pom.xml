@@ -12,16 +12,15 @@
 
     <artifactId>service-bridge-example</artifactId>
     <name>ServiceBridge Example</name>
+    <packaging>pom</packaging>
+
+    <modules>
+        <module>example-client</module>
+        <module>example-server</module>
+        <module>example-monitor</module>
+    </modules>
 
     <dependencies>
-        <dependency>
-            <groupId>top.redjujubetree</groupId>
-            <artifactId>bridge-client-starter</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>top.redjujubetree</groupId>
-            <artifactId>bridge-server-starter</artifactId>
-        </dependency>
         <dependency>
             <groupId>top.redjujubetree</groupId>
             <artifactId>bedrockmq-spring-boot-starter</artifactId>
