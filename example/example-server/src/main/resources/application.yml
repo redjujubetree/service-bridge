@@ -25,6 +25,8 @@ bedrock:
 
 service:
   bridge:
+    request-topic: ${SERVICE_BRIDGE_REQUEST_TOPIC:service-bridge.request}
+    response-topic: ${SERVICE_BRIDGE_RESPONSE_TOPIC:service-bridge.response}
     mq:
       provider: bedrock
     server:

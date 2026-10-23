@@ -10,7 +10,7 @@
     <parent>
         <groupId>top.redjujubetree</groupId>
         <artifactId>service-bridge-example</artifactId>
-        <version>0.1.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
 
     <artifactId>service-bridge-example-server</artifactId>
