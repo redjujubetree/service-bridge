@@ -23,6 +23,15 @@ spring:
   mvc:
     async:
       request-timeout: ${SPRING_MVC_ASYNC_REQUEST_TIMEOUT:70s}
+  servlet:
+    multipart:
+      # 单文件上限10MB
+      max-file-size: ${SPRING_MULTIPART_MAX_FILE_SIZE:10MB}
+
+ocr:
+  upload:
+    # 取值方式：@Value("${ocr.upload.allowed-extensions}") String 或 List<String>
+    allowed-extensions: ${OCR_ALLOWED_EXTENSIONS:jpg,jpeg,png,bmp,tif,tiff,webp,pdf}
 
 bedrock:
   mq:
@@ -39,9 +48,5 @@ service:
       provider: bedrock
     client:
       timeout: ${BRIDGE_CLIENT_TIMEOUT:60s}
-      message-source: ${BRIDGE_MESSAGE_SOURCE:${spring.application.name}}
       redis-channel: ${REDIS_CHANNEL:local:service-bridge:completed}
       max-waiting-requests: ${BRIDGE_MAX_WAITING_REQUESTS:10000}
-      require-active-subscriber: ${BRIDGE_REQUIRE_ACTIVE_SUBSCRIBER:true}
-      reconciliation-enabled: ${BRIDGE_RECONCILIATION_ENABLED:true}
-      reconciliation-interval: ${BRIDGE_RECONCILIATION_INTERVAL:5s}

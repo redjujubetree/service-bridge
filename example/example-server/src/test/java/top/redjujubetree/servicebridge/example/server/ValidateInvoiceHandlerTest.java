@@ -1,6 +1,7 @@
-package top.redjujubetree.servicebridge.example.server.handler;
+package top.redjujubetree.servicebridge.example.server;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import top.redjujubetree.servicebridge.example.server.handler.ValidateInvoiceHandler;
 import top.redjujubetree.servicebridge.server.core.BridgeHandlerResult;
 import top.redjujubetree.servicebridge.server.core.BridgeRequestContext;
 import org.junit.jupiter.api.Test;

@@ -15,9 +15,9 @@ import top.redjujubetree.servicebridge.example.client.ocr.OcrFileStorageService;
 import top.redjujubetree.servicebridge.example.client.ocr.OcrResultQueryService;
 
 import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.Optional;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.*;
 
 @RestController
 @RequestMapping("/ocr")
@@ -41,46 +41,47 @@ public class OCRController {
 
     /**
      * OCR 文件上传与识别接口。
-     *
-     * 完整链路：
-     * 1. 接收 multipart/form-data 文件。
-     * 2. 将原始文件及元数据保存到数据库。
-     * 3. 初始化 OCR 业务结果记录。
-     * 4. 将 fileId 放入 JSON payload。
-     * 5. 调用现有 ServiceBridgeClient。
-     * 6. 直接返回 DeferredResult，由现有 ServiceBridge
-     *    通过 MQ、Redis 通知和数据库兜底完成 HTTP 响应。
-     *
-     * 不在这里等待 DeferredResult 完成。
-     * 不拆分为提交接口和结果轮询接口。
      */
     @PostMapping(consumes = "multipart/form-data")
-    public DeferredResult<ResponseEntity<Map<String, Object>>> upload(
+    public DeferredResult<ResponseEntity<BridgeHttpResponse>> upload(
             @RequestPart("file") MultipartFile file,
             @RequestHeader(value = "X-Trace-Id", required = false) String traceId)
             throws IOException {
 
+        byte[] bytes = file.getBytes();
+        String sha256 = sha256(bytes);
+
+        //── 对比现有结果，判断是否需要重新识别 ──
+        Map<String, Object> existing = resultQueryService.findBySha256(sha256);
+        if (existing != null) {
+            DeferredResult<ResponseEntity<BridgeHttpResponse>> deferred = new DeferredResult<>();
+            deferred.setResult(ResponseEntity.ok(
+                    BridgeHttpResponse.of(
+                            null,
+                            "SUCCESS",
+                            null,
+                            objectMapper.valueToTree(existing.get("resultContent")))));
+            return deferred;
+        }
+
         // ── 第一步：文件持久化 ──
-        OcrFileStorageService.StoredFile stored = fileStorageService.save(file);
+        OcrFileStorageService.StoredFile stored = fileStorageService.save(file, bytes, sha256);
 
         // ── 第二步：构建 Bridge payload ──
         Map<String, Object> payload = new LinkedHashMap<>();
         payload.put("fileId", stored.getFileId());
-        payload.put("originalName", stored.getOriginalName());
-        payload.put("contentType", stored.getContentType());
-        payload.put("fileSize", stored.getFileSize());
         JsonNode jsonPayload = objectMapper.valueToTree(payload);
 
         // ── 第三步：初始化 ocr_result 占位记录 ──
-        resultQueryService.initializePending(stored.getFileId());
+        resultQueryService.initializePending(stored.getFileId() ,stored.getSha256());
 
         // ── 第四步：发送 Bridge 请求 ──
-        final DeferredResult<ResponseEntity<BridgeHttpResponse>> bridge;
+        DeferredResult<ResponseEntity<BridgeHttpResponse>> result;
         try {
             if (traceId != null && !traceId.trim().isEmpty()) {
-                bridge = serviceBridgeClient.request("OCR", jsonPayload, traceId);
+                result = serviceBridgeClient.request("OCR", jsonPayload, traceId);
             } else {
-                bridge = serviceBridgeClient.request("OCR", jsonPayload);
+                result = serviceBridgeClient.request("OCR", jsonPayload);
             }
         } catch (RuntimeException e) {
             resultQueryService.markSubmitFailed(
@@ -88,44 +89,25 @@ public class OCRController {
             throw e;
         }
 
-        // ── 第五步：用 setResultHandler 在 bridge 结果回来时，合并 OCR 数据再返回 ──
-        final DeferredResult<ResponseEntity<Map<String, Object>>> result = new DeferredResult<>();
-
-        bridge.setResultHandler(bridgeResultObj -> {
-            @SuppressWarnings("unchecked")
-            ResponseEntity<BridgeHttpResponse> bridgeResp =
-                    (ResponseEntity<BridgeHttpResponse>) bridgeResultObj;
-
-            int httpStatus = bridgeResp != null
-                    ? bridgeResp.getStatusCodeValue()
-                    : 500;
-
-            BridgeHttpResponse bridgeBody = bridgeResp != null
-                    ? bridgeResp.getBody()
-                    : null;
-
-            // 此时 Server 侧事务已提交，ocr_result 表一定已写入
-            Map<String, Object> ocrData =
-                    resultQueryService.findByFileId(stored.getFileId());
-
-            Map<String, Object> finalBody = new LinkedHashMap<>();
-            finalBody.put("bridge", bridgeBody);
-            finalBody.put("ocr", ocrData);
-
-            result.setResult(ResponseEntity.status(httpStatus).body(finalBody));
-        });
-
         return result;
+    }
+
+    private String sha256(byte[] bytes) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(bytes);
+            StringBuilder result = new StringBuilder(hash.length * 2);
+            for (byte b : hash) {
+                result.append(String.format("%02x", b & 0xff));
+            }
+            return result.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("当前环境不支持SHA-256", e);
+        }
     }
 
     /**
      * ServiceBridge 结果查询兜底接口。
-     *
-     * 与现有 ReportController 的 GET /reports/{requestId} 一样，
-     * 它查询的是 ServiceBridge 请求结果，而不是让调用方正常轮询 OCR。
-     *
-     * requestId 必须是 ServiceBridge 的请求 ID，
-     * 不是这里生成的 fileId。
      */
     @GetMapping("/{requestId}")
     public Optional<BridgeStoredResult> query(

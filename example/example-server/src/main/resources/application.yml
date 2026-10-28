@@ -30,13 +30,10 @@ service:
     mq:
       provider: bedrock
     server:
-      message-source: ${BRIDGE_MESSAGE_SOURCE:${spring.application.name}}
       processing-timeout: ${BRIDGE_PROCESSING_TIMEOUT:15m}
       recovery-enabled: ${BRIDGE_RECOVERY_ENABLED:true}
-      recovery-interval: ${BRIDGE_RECOVERY_INTERVAL:1m}
-      recovery-batch-size: ${BRIDGE_RECOVERY_BATCH_SIZE:100}
 ocr:
   # 根据 OCR 服务实际部署位置修改。
   # Docker Desktop 容器访问 Windows 宿主机上的 OCR 服务时，
   # 通常使用 host.docker.internal。
-  url: ${OCR_SERVICE_URL:http://localhost:8000/ocr}
+  url: ${OCR_SERVICE_URL:http://localhost:8080/ocr}
