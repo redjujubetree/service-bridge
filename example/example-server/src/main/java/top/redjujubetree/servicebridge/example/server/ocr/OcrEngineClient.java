@@ -1,6 +1,8 @@
 
 package top.redjujubetree.servicebridge.example.server.ocr;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Component;
@@ -13,6 +15,8 @@ import java.util.Map;
 
 @Component
 public class OcrEngineClient {
+
+    private static final Logger log = LoggerFactory.getLogger(OcrEngineClient.class);
 
     private final RestTemplate restTemplate = new RestTemplate();
 
@@ -27,6 +31,8 @@ public class OcrEngineClient {
             throws IOException {
 
         String base64 = Base64.getEncoder().encodeToString(file.getFileData());
+
+        log.info("OCR请求base64长度: {} 字符, 原始文件: {} 字节", base64.length(), file.getFileData().length);
 
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("file", base64);

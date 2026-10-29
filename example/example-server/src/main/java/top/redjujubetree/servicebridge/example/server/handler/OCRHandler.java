@@ -1,4 +1,3 @@
-
 package top.redjujubetree.servicebridge.example.server.handler;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -7,20 +6,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.ResourceAccessException;
+import top.redjujubetree.servicebridge.example.server.ocr.InvoiceParserClient;
+import top.redjujubetree.servicebridge.example.server.ocr.OcrBodyTrimmer;
 import top.redjujubetree.servicebridge.example.server.ocr.OcrEngineClient;
 import top.redjujubetree.servicebridge.example.server.ocr.OcrFileStorageService;
 import top.redjujubetree.servicebridge.example.server.ocr.OcrResultService;
 import top.redjujubetree.servicebridge.server.core.BridgeHandlerResult;
 import top.redjujubetree.servicebridge.server.core.BridgeRequestContext;
 import top.redjujubetree.servicebridge.server.core.BridgeRequestHandler;
-import top.redjujubetree.servicebridge.server.exception.BridgeRetryableException;
-
-// 以下ServiceBridge类型的包名和getter沿用你当前已运行的Handler。
-
-import java.io.IOException;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
 @Component
 public class OCRHandler implements BridgeRequestHandler {
@@ -31,16 +24,22 @@ public class OCRHandler implements BridgeRequestHandler {
     private final OcrFileStorageService fileStorageService;
     private final OcrEngineClient ocrEngineClient;
     private final OcrResultService resultService;
+    private final InvoiceParserClient invoiceParserClient;
+    private final OcrBodyTrimmer ocrBodyTrimmer;
     private final ObjectMapper objectMapper;
 
     public OCRHandler(
             OcrFileStorageService fileStorageService,
             OcrEngineClient ocrEngineClient,
             OcrResultService resultService,
+            InvoiceParserClient invoiceParserClient,
+            OcrBodyTrimmer ocrBodyTrimmer,
             ObjectMapper objectMapper) {
         this.fileStorageService = fileStorageService;
         this.ocrEngineClient = ocrEngineClient;
         this.resultService = resultService;
+        this.invoiceParserClient = invoiceParserClient;
+        this.ocrBodyTrimmer = ocrBodyTrimmer;
         this.objectMapper = objectMapper;
     }
 
@@ -67,30 +66,34 @@ public class OCRHandler implements BridgeRequestHandler {
 
             // 从数据库读取并校验原始文件。
             OcrFileStorageService.StoredFile file = fileStorageService.load(fileId);
-
             if(file.getDeleted()==1){
-                log.info("=======file.getDeleted()==1");
-                return BridgeHandlerResult.failure("OCR_PROCESSING_FAILED", "OCR处理失败");
+                resultService.markFailed(fileId, requestId, "OCR_PROCESSING_FAILED", "图片或文件不存在，请重新上传");
+                return BridgeHandlerResult.failure("OCR_PROCESSING_FAILED", "图片或文件不存在，请重新上传");
             }
 
-            // OCR协议适配层负责调用当前multipart OCR服务。
+            // 调用远程OCR服务。
             OcrEngineClient.OcrResponse ocrResponse = ocrEngineClient.recognize(file);
-
             if (ocrResponse.getHttpStatus() < 200 || ocrResponse.getHttpStatus() >= 300) {
                 resultService.markFailed(fileId, requestId, "OCR_HTTP_" + ocrResponse.getHttpStatus(), "OCR服务返回非成功HTTP状态");
                 return BridgeHandlerResult.failure("OCR_PROCESSING_FAILED", "OCR处理失败");
             }
 
-            log.info("ocrResponse.getContentType() : {}", ocrResponse.getContentType());
-            log.info("ocrResponse.getBody() : {}", ocrResponse.getBody());
-            // 第一步：将完整OCR结果保存到独立业务表。
-            resultService.markSuccess(fileId,requestId,ocrResponse.getContentType(),ocrResponse.getBody());
-            //第二步：ServiceBridge响应，结果塞进request_payload或响应结果。
+            // OCR响应里会带图片base64，解析用不到，先流式裁掉再提取信息。
+            String ocrBody = ocrBodyTrimmer.trim(ocrResponse.getBody());
+
+            // 机器上没装Python时这里直接抛异常，由下面的catch统一转成失败响应。
+            String invoiceJson = invoiceParserClient.parse(ocrBody);
+            log.info("invoice_parser output : {}", invoiceJson);
+
+            // 将OCR结果保存到独立业务表。
+            resultService.markSuccess(fileId,requestId,ocrResponse.getContentType(),invoiceJson);
+
+            //ServiceBridge响应，结果塞进request_payload或响应结果。
             JsonNode node;
             try {
-                node = objectMapper.readTree(ocrResponse.getBody());
+                node = objectMapper.readTree(invoiceJson);
             } catch (JsonProcessingException e) {
-                node = objectMapper.getNodeFactory().textNode(ocrResponse.getBody());
+                node = objectMapper.getNodeFactory().textNode(invoiceJson);
             }
             return BridgeHandlerResult.success(node);
 
