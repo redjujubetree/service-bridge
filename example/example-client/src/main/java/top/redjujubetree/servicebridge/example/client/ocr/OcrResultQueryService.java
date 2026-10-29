@@ -67,7 +67,6 @@ public class OcrResultQueryService {
                 "FROM ocr_result WHERE sha256 = ? AND status = 'SUCCESS' LIMIT 1";
 
         List<Map<String, Object>> rows = jdbcTemplate.query(sql, (rs, rowNum) -> {
-            log.info("rs.getString(\"result_content\") : {}", rs.getString("result_content"));
 
             Map<String, Object> result = new LinkedHashMap<>();
             result.put("fileId", rs.getString("file_id"));

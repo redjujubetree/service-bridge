@@ -49,8 +49,9 @@ class OCRControllerTest {
                 content
         );
 
+        String base64 =new String();
         String sha256 = sha256(content);
-        OcrFileStorageService.StoredFile stored = fileStorageService.save(upload, content, sha256);
+        String stored = fileStorageService.save(base64, sha256);
         log.info("stored: {}", stored);
 
     }

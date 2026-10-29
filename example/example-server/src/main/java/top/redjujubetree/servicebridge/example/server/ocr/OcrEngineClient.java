@@ -1,27 +1,32 @@
 
 package top.redjujubetree.servicebridge.example.server.ocr;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
-import java.util.Base64;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
 @Component
 public class OcrEngineClient {
 
-    private static final Logger log = LoggerFactory.getLogger(OcrEngineClient.class);
-
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate;
 
     @Value("${ocr.url:http://localhost:8080/ocr}")
     private String ocrUrl;
+
+    public OcrEngineClient(
+            @Value("${ocr.connect-timeout-ms:5000}") int connectTimeoutMs,
+            @Value("${ocr.read-timeout-ms:120000}") int readTimeoutMs) {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(connectTimeoutMs);
+        factory.setReadTimeout(readTimeoutMs);
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     /**
      * 这里的JSON报文只是当前OCR引擎的协议适配。
@@ -30,13 +35,9 @@ public class OcrEngineClient {
     public OcrResponse recognize(OcrFileStorageService.StoredFile file)
             throws IOException {
 
-        String base64 = Base64.getEncoder().encodeToString(file.getFileData());
-
-        log.info("OCR请求base64长度: {} 字符, 原始文件: {} 字节", base64.length(), file.getFileData().length);
-
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("file", base64);
-        body.put("fileType", file.getType());
+        body.put("file", file.getFileData());
+        body.put("fileType", 1);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);

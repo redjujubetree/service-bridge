@@ -9,12 +9,6 @@ spring:
     username: ${MYSQL_USERNAME:root}
     password: ${MYSQL_PASSWORD:12345678}
     driver-class-name: com.mysql.cj.jdbc.Driver
-  sql:
-    init:
-      mode: always
-      schema-locations:
-        - classpath:schema-mysql.sql
-        - classpath:db/service-bridge-schema-mysql.sql
 
 bedrock:
   mq:
@@ -34,4 +28,6 @@ service:
       recovery-enabled: ${BRIDGE_RECOVERY_ENABLED:true}
 ocr:
   url: ${OCR_SERVICE_URL:http://localhost:8080/ocr}
+  connect-timeout-ms: ${OCR_CONNECT_TIMEOUT_MS:5000}
+  read-timeout-ms: ${OCR_READ_TIMEOUT_MS:120000}
   invoice-parser-script: ${INVOICE_PARSER_SCRIPT:C:/Users/_Aurora/Desktop/workspace/service-bridge/example/example-server/src/main/resources/python/invoice_parser.py}

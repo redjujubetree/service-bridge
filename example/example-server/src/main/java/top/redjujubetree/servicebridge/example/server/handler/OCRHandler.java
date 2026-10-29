@@ -67,8 +67,8 @@ public class OCRHandler implements BridgeRequestHandler {
             // 从数据库读取并校验原始文件。
             OcrFileStorageService.StoredFile file = fileStorageService.load(fileId);
             if(file.getDeleted()==1){
-                resultService.markFailed(fileId, requestId, "OCR_PROCESSING_FAILED", "图片或文件不存在，请重新上传");
-                return BridgeHandlerResult.failure("OCR_PROCESSING_FAILED", "图片或文件不存在，请重新上传");
+                resultService.markFailed(fileId, requestId, "OCR_PROCESSING_FAILED", "图片不存在，请重新上传");
+                return BridgeHandlerResult.failure("OCR_PROCESSING_FAILED", "图片不存在，请重新上传");
             }
 
             // 调用远程OCR服务。

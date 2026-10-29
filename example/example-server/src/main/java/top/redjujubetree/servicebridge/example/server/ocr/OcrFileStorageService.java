@@ -1,13 +1,19 @@
 
 package top.redjujubetree.servicebridge.example.server.ocr;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
+
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.util.List;
 
 @Service
 public class OcrFileStorageService {
+
+    private static final Logger log = LoggerFactory.getLogger(OcrFileStorageService.class);
 
     private final JdbcTemplate jdbcTemplate;
 
@@ -17,27 +23,18 @@ public class OcrFileStorageService {
 
     public static class StoredFile {
         private final String fileId;
-        private final String originalName;
-        private final String extension;
-        private final int type;
         private final long fileSize;
-        private final byte[] fileData;
+        private final String fileData;
         private final String sha256;
         private final int deleted;
 
         public StoredFile(
                 String fileId,
-                String originalName,
-                String extension,
-                int type,
                 long fileSize,
-                byte[] fileData,
+                String fileData,
                 String sha256,
                 int deleted) {
             this.fileId = fileId;
-            this.originalName = originalName;
-            this.extension = extension;
-            this.type = type;
             this.fileSize = fileSize;
             this.fileData = fileData;
             this.sha256 = sha256;
@@ -45,26 +42,19 @@ public class OcrFileStorageService {
         }
 
         public String getFileId() { return fileId; }
-        public String getOriginalName() { return originalName; }
-        public String getExtension() { return extension; }
-        public int getType() { return type; }
         public long getFileSize() { return fileSize; }
-        public byte[] getFileData() { return fileData; }
+        public String getFileData() { return fileData; }
         public String getSha256() { return sha256; }
         public int getDeleted() { return deleted; }
     }
 
     public StoredFile load(String fileId) {
         List<StoredFile> metadata = jdbcTemplate.query(
-                "SELECT file_id, original_name, extension, type, " +
-                        "file_size, file_data, sha256, deleted FROM ocr_file_metadata WHERE file_id = ?",
+                "SELECT file_id, file_size, file_data, sha256, deleted FROM ocr_file_metadata WHERE file_id = ?",
                 (rs, rowNum) -> new StoredFile(
                         rs.getString("file_id"),
-                        rs.getString("original_name"),
-                        rs.getString("extension"),
-                        rs.getInt("type"),
                         rs.getLong("file_size"),
-                        rs.getBytes("file_data"),
+                        rs.getString("file_data"),
                         rs.getString("sha256"),
                         rs.getInt("deleted")
                 ),
@@ -79,14 +69,15 @@ public class OcrFileStorageService {
 
         if(m.getDeleted()==1){
             return new StoredFile(
-                    m.getFileId(), m.getOriginalName(), m.getExtension(), m.getType(),
-                    m.getFileSize(), m.getFileData(), m.getSha256(), m.getDeleted()
+                    m.getFileId(), m.getFileSize(), m.getFileData(), m.getSha256(), m.getDeleted()
             );
         }
 
-        if (m.getFileData().length != m.getFileSize()) {
+        byte[] stored = m.getFileData().getBytes(StandardCharsets.UTF_8);
+        if (stored.length != m.getFileSize()) {
             throw new IllegalStateException("文件大小校验失败");
         }
+        log.info("OCR请求base64长度: {} 字符", stored.length);
 
         String actualSha256 = sha256(m.getFileData());
         if (!actualSha256.equalsIgnoreCase(m.getSha256())) {
@@ -94,8 +85,7 @@ public class OcrFileStorageService {
         }
 
         return new StoredFile(
-                m.getFileId(), m.getOriginalName(), m.getExtension(), m.getType(),
-                m.getFileSize(), m.getFileData(), m.getSha256(), m.getDeleted()
+                m.getFileId(), m.getFileSize(), m.getFileData(), m.getSha256(), m.getDeleted()
         );
     }
 
@@ -108,9 +98,10 @@ public class OcrFileStorageService {
         );
     }
 
-    private String sha256(byte[] bytes) {
+    private String sha256(String base64) {
         try {
-            byte[] hash = MessageDigest.getInstance("SHA-256").digest(bytes);
+            byte[] hash = MessageDigest.getInstance("SHA-256")
+                    .digest(base64.getBytes(StandardCharsets.UTF_8));
             StringBuilder result = new StringBuilder(hash.length * 2);
             for (byte b : hash) {
                 result.append(String.format("%02x", b & 0xff));
