@@ -23,7 +23,9 @@ import top.redjujubetree.bedrock.mq.mapper.BedrockSubscriptionMapper;
 import top.redjujubetree.bedrock.mq.producer.MessageProducer;
 
 import java.lang.reflect.Field;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 @Configuration
 @AutoConfigureBefore(name = "top.redjujubetree.bedrock.mq.config.BedrockAutoConfiguration")
@@ -84,6 +86,9 @@ public class BedrockBridgeAutoConfiguration {
                 Map<String, BedrockMessageConsumer> consumers =
                         (Map<String, BedrockMessageConsumer>) ReflectionUtils.getField(field, registry);
                 BedrockSubscriptionMapper subscriptions = context.getBean(BedrockSubscriptionMapper.class);
+                Set<String> existingSubscriptions = new HashSet<>();
+                subscriptions.findAll().forEach(subscription -> existingSubscriptions.add(
+                        BedrockConsumerRegistry.key(subscription.getTopic(), subscription.getConsumer())));
                 for (BridgeInboundHandler handler : context.getBeansOfType(BridgeInboundHandler.class).values()) {
                     for (String topic : handler.topics()) {
                         requireBedrockTopic(topic);
@@ -93,7 +98,9 @@ public class BedrockBridgeAutoConfiguration {
                                 message -> handler.handle(topic, message.getPayload())) != null) {
                             throw new IllegalStateException("Duplicate BedrockMQ consumer: " + registrationKey);
                         }
-                        subscriptions.upsert(topic, group, 10);
+                        if (existingSubscriptions.add(registrationKey)) {
+                            subscriptions.upsert(topic, group, 10);
+                        }
                     }
                 }
                 return bean;

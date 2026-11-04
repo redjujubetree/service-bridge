@@ -8,6 +8,7 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.redjujubetree.bedrock.mq.consumer.BedrockConsumerRegistry;
+import top.redjujubetree.bedrock.mq.entity.BedrockSubscription;
 import top.redjujubetree.bedrock.mq.mapper.BedrockSubscriptionMapper;
 
 import java.util.Arrays;
@@ -15,7 +16,9 @@ import java.util.Collection;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class BedrockBridgeRegistrationTest {
     @Test
@@ -33,8 +36,29 @@ class BedrockBridgeRegistrationTest {
         }
     }
 
+    @Test
+    void registersConsumerWithoutInsertingExistingSubscription() {
+        BedrockSubscription existing = new BedrockSubscription();
+        existing.setTopic("custom.request");
+        existing.setConsumer("bridge-server-custom");
+        TestConfiguration.existing = existing;
+        try (AnnotationConfigApplicationContext context =
+                     new AnnotationConfigApplicationContext(TestConfiguration.class)) {
+            assertTrue(context.getBean(BedrockConsumerRegistry.class).getRegisteredKeys()
+                    .contains(BedrockConsumerRegistry.key("custom.request", "bridge-server-custom")));
+            verify(context.getBean(BedrockSubscriptionMapper.class), never())
+                    .upsert("custom.request", "bridge-server-custom", 10);
+            verify(context.getBean(BedrockSubscriptionMapper.class))
+                    .upsert("another.request", "bridge-server-another", 10);
+        } finally {
+            TestConfiguration.existing = null;
+        }
+    }
+
     @Configuration
     static class TestConfiguration {
+        static BedrockSubscription existing;
+
         @Bean
         static BeanPostProcessor registrar(ApplicationContext context) {
             return BedrockBridgeAutoConfiguration.bedrockBridgeRegistrar(context);
@@ -42,7 +66,11 @@ class BedrockBridgeRegistrationTest {
 
         @Bean
         BedrockSubscriptionMapper subscriptions() {
-            return mock(BedrockSubscriptionMapper.class);
+            BedrockSubscriptionMapper mapper = mock(BedrockSubscriptionMapper.class);
+            if (existing != null) {
+                when(mapper.findAll()).thenReturn(java.util.Collections.singletonList(existing));
+            }
+            return mapper;
         }
 
         @Bean
