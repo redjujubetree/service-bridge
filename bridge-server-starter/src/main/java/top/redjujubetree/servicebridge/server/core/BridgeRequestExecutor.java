@@ -8,6 +8,8 @@ import top.redjujubetree.servicebridge.server.config.ServiceBridgeServerProperti
 import top.redjujubetree.servicebridge.server.exception.BridgeRetryableException;
 import top.redjujubetree.servicebridge.server.exception.UnsupportedBusinessTypeException;
 import top.redjujubetree.servicebridge.server.model.AcquireResult;
+import top.redjujubetree.servicebridge.server.store.BridgeResultStore;
+import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -17,23 +19,36 @@ public class BridgeRequestExecutor {
     private final BridgeRequestHandlerRegistry handlerRegistry;
     private final BridgeRequestAcquirer requestAcquirer;
     private final BridgeResultCommitter resultCommitter;
+    private final BridgeResultStore resultStore;
+    private final BridgeTopicProperties topics;
     private final ServiceBridgeServerProperties properties;
     private final ObjectMapper objectMapper;
 
     public BridgeRequestExecutor(BridgeRequestHandlerRegistry handlerRegistry,
                                  BridgeRequestAcquirer requestAcquirer,
                                  BridgeResultCommitter resultCommitter,
+                                 BridgeResultStore resultStore,
+                                 BridgeTopicProperties topics,
                                  ServiceBridgeServerProperties properties,
                                  ObjectMapper objectMapper) {
         this.handlerRegistry = handlerRegistry;
         this.requestAcquirer = requestAcquirer;
         this.resultCommitter = resultCommitter;
+        this.resultStore = resultStore;
+        this.topics = topics;
         this.properties = properties;
         this.objectMapper = objectMapper;
     }
 
-    public void execute(BridgeRequestMessage request) {
+    public void execute(String requestId, String topic) {
+        BridgeRequestMessage request = resultStore.findRequest(requestId)
+                .orElseThrow(() -> new BridgeRetryableException(
+                        "ServiceBridge request row not found: " + requestId));
         BridgeMessageValidator.validate(request);
+        if (!topic.equals(topics.requestTopicFor(request.getBusinessType()))) {
+            throw new IllegalArgumentException("businessType " + request.getBusinessType()
+                    + " is not configured for REQUEST topic " + topic);
+        }
         validateTimeout();
 
         String attemptToken = UUID.randomUUID().toString().replace("-", "");

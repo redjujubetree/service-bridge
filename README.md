@@ -21,7 +21,7 @@ Java 8 编译目标，构建使用 JDK 17。消息语义为至少一次，业务
 ## 一致性与消息流程
 
 ```text
-HTTP → Client 注册 WaitContext → 提交请求行 → 同步发送 REQUEST 到 MQ
+HTTP → Client 注册 WaitContext → 提交请求行 → 同步发送 requestId 到 REQUEST Topic
      → Server Handler → 提交结果行 → 同步发送 RESPONSE 到 MQ
      → Client 消费 RESPONSE → Redis 广播 → 原实例查数据库并返回 HTTP
 ```
@@ -44,12 +44,12 @@ Client 与 Server 应配置相同的 `service.bridge.mq.provider: bedrock`、REQ
 <dependency>
     <groupId>top.redjujubetree</groupId>
     <artifactId>bridge-client-starter</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>0.1.1</version>
 </dependency>
 <dependency>
     <groupId>top.redjujubetree</groupId>
     <artifactId>bedrockmq-spring-boot-starter</artifactId>
-    <version>0.0.7</version>
+    <version>0.0.9</version>
 </dependency>
 ```
 

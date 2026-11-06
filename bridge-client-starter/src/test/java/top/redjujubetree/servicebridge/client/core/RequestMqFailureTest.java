@@ -31,7 +31,7 @@ class RequestMqFailureTest {
         jdbc.execute(JdbcBridgeRequestStoreTest.TestSchema.CREATE_TABLE);
         ObjectMapper mapper = new ObjectMapper();
         JdbcBridgeRequestStore store = new JdbcBridgeRequestStore(
-                new NamedParameterJdbcTemplate(dataSource), mapper);
+                new NamedParameterJdbcTemplate(dataSource));
         BridgeMessagePublisher publisher = mock(BridgeMessagePublisher.class);
         doThrow(new IllegalStateException("broker unavailable"))
                 .when(publisher).send(any(), any(), any());

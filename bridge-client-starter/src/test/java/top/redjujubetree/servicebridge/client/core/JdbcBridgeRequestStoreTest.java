@@ -1,6 +1,5 @@
 package top.redjujubetree.servicebridge.client.core;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.client.model.BridgeRequestRecord;
 import top.redjujubetree.servicebridge.client.model.BridgeStoredResult;
 import top.redjujubetree.servicebridge.client.store.jdbc.JdbcBridgeRequestStore;
@@ -44,8 +43,7 @@ class JdbcBridgeRequestStoreTest {
         jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("DROP TABLE IF EXISTS service_bridge_request");
         jdbc.execute(TestSchema.CREATE_TABLE);
-        store = new JdbcBridgeRequestStore(
-                new NamedParameterJdbcTemplate(dataSource), new ObjectMapper());
+        store = new JdbcBridgeRequestStore(new NamedParameterJdbcTemplate(dataSource));
     }
 
     @Test
@@ -54,7 +52,8 @@ class JdbcBridgeRequestStoreTest {
         request.setRequestId("request-1");
         request.setProtocolVersion(ServiceBridgeProtocol.VERSION);
         request.setBusinessType("TEST");
-        request.setRequestPayload(new ObjectMapper().readTree("{\"a\":1}"));
+        request.setRequestPayload("{\"a\":1}");
+        request.setTraceId("trace-1");
         request.setWaitStatus(BridgeWaitStatus.WAITING);
         request.setProcessStatus(BridgeProcessStatus.PENDING);
         request.setCreatedAt(LocalDateTime.now());
@@ -63,6 +62,8 @@ class JdbcBridgeRequestStoreTest {
 
         assertEquals("{\"a\":1}", jdbc.queryForObject(
                 "SELECT request_payload FROM service_bridge_request WHERE request_id='request-1'", String.class));
+        assertEquals("trace-1", jdbc.queryForObject(
+                "SELECT trace_id FROM service_bridge_request WHERE request_id='request-1'", String.class));
         jdbc.update("UPDATE service_bridge_request SET process_status='SUCCESS', result_payload='{\"ok\":true}' WHERE request_id='request-1'");
         Optional<BridgeStoredResult> stored = store.find("request-1");
 
@@ -88,13 +89,13 @@ class JdbcBridgeRequestStoreTest {
         request.setRequestId("request-2");
         request.setProtocolVersion(ServiceBridgeProtocol.VERSION);
         request.setBusinessType("TEST");
-        request.setRequestPayload(new ObjectMapper().readTree("{\"text\":\"中文\"}"));
+        request.setRequestPayload("{\"text\":\"中文\"}");
         request.setWaitStatus(BridgeWaitStatus.WAITING);
         request.setProcessStatus(BridgeProcessStatus.PENDING);
         request.setCreatedAt(LocalDateTime.now());
         request.setClientDeadlineAt(LocalDateTime.now().plusMinutes(1));
 
-        new JdbcBridgeRequestStore(namedJdbc, new ObjectMapper()).create(request);
+        new JdbcBridgeRequestStore(namedJdbc).create(request);
 
         verify(statement).setCharacterStream(
                 org.mockito.ArgumentMatchers.eq(4), any(StringReader.class),
@@ -115,7 +116,7 @@ class JdbcBridgeRequestStoreTest {
                 invocation.getArgument(2, RowMapper.class).mapRow(resultSet, 0)))
                 .when(namedJdbc).query(anyString(), any(Map.class), any(RowMapper.class));
 
-        BridgeStoredResult result = new JdbcBridgeRequestStore(namedJdbc, new ObjectMapper())
+        BridgeStoredResult result = new JdbcBridgeRequestStore(namedJdbc)
                 .find("request-3").get();
 
         assertEquals("{\"message\":\"中文\"}", result.getResultPayload());
@@ -125,7 +126,7 @@ class JdbcBridgeRequestStoreTest {
     static final class TestSchema {
         static final String CREATE_TABLE = "CREATE TABLE service_bridge_request ("
                 + "request_id VARCHAR(64) PRIMARY KEY, protocol_version VARCHAR(16), business_type VARCHAR(128), "
-                + "request_payload LONGTEXT, wait_status VARCHAR(20), process_status VARCHAR(20), "
+                + "request_payload LONGTEXT, trace_id VARCHAR(127), wait_status VARCHAR(20), process_status VARCHAR(20), "
                 + "result_payload LONGTEXT, error_code VARCHAR(64), error_message VARCHAR(1000), "
                 + "processing_token VARCHAR(64), processing_started_at TIMESTAMP, processing_expires_at TIMESTAMP, "
                 + "client_deadline_at TIMESTAMP, responded_at TIMESTAMP, process_completed_at TIMESTAMP, "

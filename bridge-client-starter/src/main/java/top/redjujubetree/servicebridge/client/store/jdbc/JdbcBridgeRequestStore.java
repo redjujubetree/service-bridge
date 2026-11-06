@@ -1,7 +1,5 @@
 package top.redjujubetree.servicebridge.client.store.jdbc;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.client.model.BridgeRequestRecord;
 import top.redjujubetree.servicebridge.client.model.BridgeStoredResult;
 import top.redjujubetree.servicebridge.client.store.BridgeRequestStore;
@@ -32,34 +30,33 @@ public class JdbcBridgeRequestStore implements BridgeRequestStore {
                     + "result_payload, error_code, error_message";
 
     private final NamedParameterJdbcTemplate jdbc;
-    private final ObjectMapper objectMapper;
 
-    public JdbcBridgeRequestStore(NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper) {
+    public JdbcBridgeRequestStore(NamedParameterJdbcTemplate jdbc) {
         this.jdbc = jdbc;
-        this.objectMapper = objectMapper;
     }
 
     @Override
     public void create(BridgeRequestRecord request) {
         String sql = "INSERT INTO service_bridge_request ("
-                + "request_id, protocol_version, business_type, request_payload, "
+                + "request_id, protocol_version, business_type, request_payload, trace_id, "
                 + "wait_status, process_status, client_deadline_at, created_at, updated_at, version"
                 + ") VALUES ("
-                + "?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
+                + "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)";
 
-        String requestJson = toJson(request);
+        String requestJson = request.getRequestPayload();
         try (StringReader reader = new StringReader(requestJson)) {
             jdbc.getJdbcTemplate().update(sql, ps -> {
                 ps.setString(1, request.getRequestId());
                 ps.setString(2, request.getProtocolVersion());
                 ps.setString(3, request.getBusinessType());
                 ps.setCharacterStream(4, reader, requestJson.length());
-                ps.setString(5, request.getWaitStatus().name());
-                ps.setString(6, request.getProcessStatus().name());
-                ps.setTimestamp(7, Timestamp.valueOf(request.getClientDeadlineAt()));
+                ps.setString(5, request.getTraceId());
+                ps.setString(6, request.getWaitStatus().name());
+                ps.setString(7, request.getProcessStatus().name());
+                ps.setTimestamp(8, Timestamp.valueOf(request.getClientDeadlineAt()));
                 Timestamp createdAt = Timestamp.valueOf(request.getCreatedAt());
-                ps.setTimestamp(8, createdAt);
                 ps.setTimestamp(9, createdAt);
+                ps.setTimestamp(10, createdAt);
             });
         }
     }
@@ -136,14 +133,6 @@ public class JdbcBridgeRequestStore implements BridgeRequestStore {
             result.put(row.getRequestId(), row);
         }
         return result;
-    }
-
-    private String toJson(BridgeRequestRecord request) {
-        try {
-            return objectMapper.writeValueAsString(request.getRequestPayload());
-        } catch (JsonProcessingException e) {
-            throw new IllegalArgumentException("Failed to serialize request payload", e);
-        }
     }
 
     private RowMapper<BridgeStoredResult> storedResultRowMapper() {

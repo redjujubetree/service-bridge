@@ -2,12 +2,15 @@ package top.redjujubetree.servicebridge.server.store;
 
 import top.redjujubetree.servicebridge.server.model.AcquireResult;
 import top.redjujubetree.servicebridge.server.model.BridgeProcessingRecord;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 public interface BridgeResultStore {
+
+    Optional<BridgeRequestMessage> findRequest(String requestId);
 
     AcquireResult tryAcquire(String requestId,
                              String attemptToken,

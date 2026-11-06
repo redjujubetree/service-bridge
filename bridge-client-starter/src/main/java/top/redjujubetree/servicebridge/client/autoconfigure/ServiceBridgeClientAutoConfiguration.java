@@ -56,9 +56,8 @@ public class ServiceBridgeClientAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public BridgeRequestStore bridgeRequestStore(NamedParameterJdbcTemplate jdbc,
-                                                 ObjectMapper objectMapper) {
-        return new JdbcBridgeRequestStore(jdbc, objectMapper);
+    public BridgeRequestStore bridgeRequestStore(NamedParameterJdbcTemplate jdbc) {
+        return new JdbcBridgeRequestStore(jdbc);
     }
 
     @Bean

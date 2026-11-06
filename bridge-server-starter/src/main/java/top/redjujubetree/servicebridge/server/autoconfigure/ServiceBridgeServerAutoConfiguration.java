@@ -43,8 +43,8 @@ public class ServiceBridgeServerAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public BridgeResultStore bridgeResultStore(NamedParameterJdbcTemplate jdbc) {
-        return new JdbcBridgeResultStore(jdbc);
+    public BridgeResultStore bridgeResultStore(NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper) {
+        return new JdbcBridgeResultStore(jdbc, objectMapper);
     }
 
     @Bean
@@ -74,17 +74,19 @@ public class ServiceBridgeServerAutoConfiguration {
             BridgeRequestHandlerRegistry registry,
             BridgeRequestAcquirer requestAcquirer,
             BridgeResultCommitter committer,
+            BridgeResultStore resultStore,
+            BridgeTopicProperties topics,
             ServiceBridgeServerProperties properties,
             ObjectMapper objectMapper) {
-        return new BridgeRequestExecutor(registry, requestAcquirer, committer, properties, objectMapper);
+        return new BridgeRequestExecutor(registry, requestAcquirer, committer,
+                resultStore, topics, properties, objectMapper);
     }
 
     @Bean
     public BridgeRequestInboundHandler bridgeRequestInboundHandler(
-            ObjectMapper objectMapper,
             BridgeRequestExecutor executor,
             BridgeTopicProperties topics) {
-        return new BridgeRequestInboundHandler(objectMapper, executor, topics);
+        return new BridgeRequestInboundHandler(executor, topics);
     }
 
     @Bean

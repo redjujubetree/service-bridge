@@ -6,7 +6,7 @@
 
 | 字段组 | 写入方 |
 |---|---|
-| `request_id`、`protocol_version`、`business_type`、`request_payload`、`client_deadline_at`、`created_at` | Client 创建请求时写入 |
+| `request_id`、`protocol_version`、`business_type`、`request_payload`、`trace_id`、`client_deadline_at`、`created_at` | Client 创建请求时写入 |
 | `wait_status`、`responded_at` | Client 创建时置 `WAITING`，之后更新为响应或超时状态 |
 | `process_status`、`processing_token`、`processing_started_at`、`processing_expires_at`、`result_payload`、`error_code`、`error_message`、`process_completed_at` | Client 创建时将处理状态置为 `PENDING`；Server 处理时更新；Client 在 REQUEST 发送失败时也会更新处理状态和错误信息 |
 | `updated_at`、`version` | Client 和 Server 更新记录时共同维护 |
@@ -51,3 +51,5 @@ WHERE request_id = :requestId
 ServiceBridge 仅支持 MySQL 5.7 及以上版本。Starter 默认不自动执行 DDL，防止生产环境隐式变更数据库。请通过 Flyway、Liquibase 或现有发布流程执行 `bridge-protocol/src/main/resources/db/service-bridge-schema-mysql.sql`。
 
 Client 与 Server 使用同一个业务数据库。REQUEST 发送失败时，Client 将请求行更新为 FAILED。还需创建 BedrockMQ 自带的三张表。
+
+已有表升级时，先执行 `ALTER TABLE service_bridge_request ADD COLUMN trace_id VARCHAR(127) NULL;`，再同时升级 Client 和 Server。如果已按此前版本创建了 `trace_id TEXT` 列，请先确认现有值不超过 127 个字符，再执行 `ALTER TABLE service_bridge_request MODIFY COLUMN trace_id VARCHAR(127) NULL;`。REQUEST 消息格式已改为原始 `requestId` 字符串，旧版消费者无法读取新版消息，旧版生产者发送的完整 JSON 消息也不能由新版消费者处理。切换前应处理完旧 REQUEST 消息。

@@ -1,6 +1,9 @@
 package top.redjujubetree.servicebridge.server.core;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.server.model.AcquireResult;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
+import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
 import top.redjujubetree.servicebridge.server.store.jdbc.JdbcBridgeResultStore;
 import org.h2.jdbcx.JdbcDataSource;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,7 +29,9 @@ class JdbcBridgeResultStoreTest {
         jdbc = new JdbcTemplate(dataSource);
         jdbc.execute("DROP TABLE IF EXISTS service_bridge_request");
         jdbc.execute("CREATE TABLE service_bridge_request ("
-                + "request_id VARCHAR(64) PRIMARY KEY, business_type VARCHAR(128), "
+                + "request_id VARCHAR(64) PRIMARY KEY, protocol_version VARCHAR(16), "
+                + "business_type VARCHAR(128), request_payload LONGTEXT, trace_id VARCHAR(127), "
+                + "created_at TIMESTAMP, "
                 + "wait_status VARCHAR(20), client_deadline_at TIMESTAMP, "
                 + "process_status VARCHAR(20), result_payload LONGTEXT, error_code VARCHAR(64), "
                 + "error_message VARCHAR(1000), processing_token VARCHAR(64), "
@@ -34,7 +39,24 @@ class JdbcBridgeResultStoreTest {
                 + "process_completed_at TIMESTAMP, updated_at TIMESTAMP, version INT DEFAULT 0)");
         jdbc.update("INSERT INTO service_bridge_request(request_id,business_type,process_status,updated_at) "
                 + "VALUES('request-1','TEST','PENDING',CURRENT_TIMESTAMP)");
-        store = new JdbcBridgeResultStore(new NamedParameterJdbcTemplate(dataSource));
+        store = new JdbcBridgeResultStore(new NamedParameterJdbcTemplate(dataSource), new ObjectMapper());
+    }
+
+    @Test
+    void loadsRequestDataById() {
+        LocalDateTime createdAt = LocalDateTime.now().withNano(0);
+        jdbc.update("UPDATE service_bridge_request SET protocol_version = ?, request_payload = ?, "
+                        + "trace_id = ?, created_at = ?, client_deadline_at = ? WHERE request_id = ?",
+                ServiceBridgeProtocol.VERSION, "{\"text\":\"中文\"}", "trace-1",
+                java.sql.Timestamp.valueOf(createdAt),
+                java.sql.Timestamp.valueOf(createdAt.plusMinutes(1)), "request-1");
+
+        BridgeRequestMessage request = store.findRequest("request-1").get();
+        assertEquals("TEST", request.getBusinessType());
+        assertEquals("中文", request.getPayload().get("text").asText());
+        assertEquals("trace-1", request.getTraceId());
+        assertEquals(java.sql.Timestamp.valueOf(createdAt).getTime(), request.getCreatedAt());
+        assertTrue(!store.findRequest("missing").isPresent());
     }
 
     @Test

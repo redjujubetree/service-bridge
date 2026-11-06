@@ -15,7 +15,8 @@ public class JsonBridgeMessagePublisher implements BridgeMessagePublisher {
     @Override
     public void send(String topic, String requestId, Object message) {
         try {
-            transport.send(topic, requestId, mapper.writeValueAsString(message));
+            transport.send(topic, requestId,
+                    message instanceof String ? (String) message : mapper.writeValueAsString(message));
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("Cannot serialize bridge message", e);
         }

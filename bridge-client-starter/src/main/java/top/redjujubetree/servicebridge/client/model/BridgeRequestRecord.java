@@ -1,6 +1,5 @@
 package top.redjujubetree.servicebridge.client.model;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 import top.redjujubetree.servicebridge.protocol.status.BridgeWaitStatus;
 
@@ -11,7 +10,8 @@ public class BridgeRequestRecord {
     private String requestId;
     private String protocolVersion;
     private String businessType;
-    private JsonNode requestPayload;
+    private String requestPayload;
+    private String traceId;
     private BridgeWaitStatus waitStatus;
     private BridgeProcessStatus processStatus;
     private LocalDateTime clientDeadlineAt;
@@ -41,12 +41,20 @@ public class BridgeRequestRecord {
         this.businessType = businessType;
     }
 
-    public JsonNode getRequestPayload() {
+    public String getRequestPayload() {
         return requestPayload;
     }
 
-    public void setRequestPayload(JsonNode requestPayload) {
+    public void setRequestPayload(String requestPayload) {
         this.requestPayload = requestPayload;
+    }
+
+    public String getTraceId() {
+        return traceId;
+    }
+
+    public void setTraceId(String traceId) {
+        this.traceId = traceId;
     }
 
     public BridgeWaitStatus getWaitStatus() {

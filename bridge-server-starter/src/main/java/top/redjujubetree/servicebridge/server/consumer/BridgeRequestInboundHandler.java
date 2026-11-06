@@ -1,8 +1,6 @@
 package top.redjujubetree.servicebridge.server.consumer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.mq.BridgeInboundHandler;
-import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
 import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
 import top.redjujubetree.servicebridge.server.core.BridgeRequestExecutor;
@@ -14,14 +12,11 @@ import java.util.Collection;
 
 public class BridgeRequestInboundHandler implements BridgeInboundHandler {
 
-    private final ObjectMapper objectMapper;
     private final BridgeRequestExecutor executor;
     private final BridgeTopicProperties topics;
 
-    public BridgeRequestInboundHandler(ObjectMapper objectMapper,
-                                       BridgeRequestExecutor executor,
+    public BridgeRequestInboundHandler(BridgeRequestExecutor executor,
                                        BridgeTopicProperties topics) {
-        this.objectMapper = objectMapper;
         this.executor = executor;
         this.topics = topics;
     }
@@ -65,12 +60,9 @@ public class BridgeRequestInboundHandler implements BridgeInboundHandler {
 
     @Override
     public void handle(String topic, String payload) throws Exception {
-        BridgeRequestMessage request = objectMapper.readValue(
-                payload, BridgeRequestMessage.class);
-        if (!topic.equals(topics.requestTopicFor(request.getBusinessType()))) {
-            throw new IllegalArgumentException("businessType " + request.getBusinessType()
-                    + " is not configured for REQUEST topic " + topic);
+        if (payload == null || payload.trim().isEmpty()) {
+            throw new IllegalArgumentException("REQUEST payload must contain requestId");
         }
-        executor.execute(request);
+        executor.execute(payload, topic);
     }
 }

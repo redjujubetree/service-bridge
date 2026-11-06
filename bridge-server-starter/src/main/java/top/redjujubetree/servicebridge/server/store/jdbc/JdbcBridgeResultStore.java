@@ -1,5 +1,8 @@
 package top.redjujubetree.servicebridge.server.store.jdbc;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
 import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 import top.redjujubetree.servicebridge.server.model.AcquireResult;
 import top.redjujubetree.servicebridge.server.model.BridgeProcessingRecord;
@@ -19,9 +22,36 @@ import java.util.Optional;
 public class JdbcBridgeResultStore implements BridgeResultStore {
 
     private final NamedParameterJdbcTemplate jdbc;
+    private final ObjectMapper objectMapper;
 
-    public JdbcBridgeResultStore(NamedParameterJdbcTemplate jdbc) {
+    public JdbcBridgeResultStore(NamedParameterJdbcTemplate jdbc, ObjectMapper objectMapper) {
         this.jdbc = jdbc;
+        this.objectMapper = objectMapper;
+    }
+
+    @Override
+    public Optional<BridgeRequestMessage> findRequest(String requestId) {
+        String sql = "SELECT request_id, protocol_version, business_type, request_payload, "
+                + "trace_id, created_at, client_deadline_at FROM service_bridge_request "
+                + "WHERE request_id = :requestId";
+        List<BridgeRequestMessage> rows = jdbc.query(sql,
+                Collections.singletonMap("requestId", requestId), (rs, rowNum) -> {
+                    BridgeRequestMessage request = new BridgeRequestMessage();
+                    request.setRequestId(rs.getString("request_id"));
+                    request.setMessageId(requestId);
+                    request.setProtocolVersion(rs.getString("protocol_version"));
+                    request.setBusinessType(rs.getString("business_type"));
+                    request.setTraceId(rs.getString("trace_id"));
+                    request.setCreatedAt(rs.getTimestamp("created_at").getTime());
+                    request.setClientDeadlineAt(rs.getTimestamp("client_deadline_at").getTime());
+                    try {
+                        request.setPayload(objectMapper.readTree(rs.getString("request_payload")));
+                    } catch (JsonProcessingException e) {
+                        throw new SQLException("Invalid request_payload for " + requestId, e);
+                    }
+                    return request;
+                });
+        return rows.isEmpty() ? Optional.empty() : Optional.of(rows.get(0));
     }
 
     @Override

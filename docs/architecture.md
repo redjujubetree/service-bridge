@@ -4,11 +4,11 @@ Client Starter 维护本机 `requestId → DeferredResult`；Server Starter 执�
 
 ## REQUEST 提交
 
-Client 先注册 `WaitContext` 并提交 `service_bridge_request` 的 PENDING 行，然后同步发送 REQUEST。发送失败时，另起数据库事务将仍在 PENDING/PROCESSING 的请求标记为 `FAILED / MQ_SEND_FAILED`，返回 HTTP 503。数据库提交与 MQ 发送不构成跨系统原子事务；MQ 返回失败但消息已投递时，业务 Handler 仍可能产生外部副作用，因此必须幂等。
+Client 先注册 `WaitContext` 并提交包含业务类型、JSON 请求数据和 `trace_id` 的 PENDING 行，然后同步发送仅包含原始 `requestId` 字符串的 REQUEST。发送失败时，另起数据库事务将仍在 PENDING/PROCESSING 的请求标记为 `FAILED / MQ_SEND_FAILED`，返回 HTTP 503。数据库提交与 MQ 发送不构成跨系统原子事务；MQ 返回失败但消息已投递时，业务 Handler 仍可能产生外部副作用，因此必须幂等。
 
 ## 处理与结果
 
-Server 消费 REQUEST 后使用 `requestId` 和 `attemptToken` 取得处理权。未到期的 `PROCESSING` 请求不会被重复执行。Handler 完成后，Server 条件更新 SUCCESS/FAILED 并提交数据库事务；Client 仍等待时，在提交后发送 RESPONSE。RESPONSE 发送失败不会回滚已经提交的业务结果，Client 仍可通过数据库补查获得结果。
+Server 消费 REQUEST 后按 `requestId` 查询请求行，读取业务类型、JSON 请求数据和追踪信息，校验请求 Topic，再使用 `requestId` 和 `attemptToken` 取得处理权。请求行暂时不存在时抛出可重试异常。未到期的 `PROCESSING` 请求不会被重复执行。Handler 完成后，Server 条件更新 SUCCESS/FAILED 并提交数据库事务；Client 仍等待时，在提交后发送 RESPONSE。RESPONSE 发送失败不会回滚已经提交的业务结果，Client 仍可通过数据库补查获得结果。
 
 MQ 消费成功后才确认消息。`BridgeRetryableException` 会先按 token 释放执行权，再由 BedrockMQ 订阅重试。重试耗尽后的 REQUEST 需由运维排查或重放。业务 Handler 对外部系统产生的副作用必须按 `requestId` 幂等，数据库条件更新无法撤销外部副作用。
 

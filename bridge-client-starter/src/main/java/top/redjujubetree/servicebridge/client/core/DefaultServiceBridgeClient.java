@@ -9,7 +9,6 @@ import top.redjujubetree.servicebridge.client.model.BridgeStoredResult;
 import top.redjujubetree.servicebridge.client.store.BridgeRequestStore;
 import top.redjujubetree.servicebridge.mq.BridgeMessagePublisher;
 import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
-import top.redjujubetree.servicebridge.protocol.message.BridgeRequestMessage;
 import top.redjujubetree.servicebridge.protocol.status.BridgeWaitStatus;
 import top.redjujubetree.servicebridge.protocol.config.BridgeTopicProperties;
 import top.redjujubetree.servicebridge.protocol.ServiceBridgeProtocol;
@@ -20,7 +19,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.web.context.request.async.DeferredResult;
 
 import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Optional;
 
 public class DefaultServiceBridgeClient implements ServiceBridgeClient {
@@ -66,7 +64,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
     @Override
     public DeferredResult<ResponseEntity<BridgeHttpResponse>> request(
             String businessType, JsonNode payload, String traceId) {
-        validate(businessType, payload);
+        validate(businessType, payload, traceId);
         final String requestTopic = topics.requestTopicFor(businessType);
         String requestId = idGenerator.nextId();
         DeferredResult<ResponseEntity<BridgeHttpResponse>> deferred =
@@ -84,8 +82,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         final LocalDateTime createdAt = LocalDateTime.now();
         final LocalDateTime deadlineAt = createdAt.plusNanos(properties.getTimeout().toNanos());
         final BridgeRequestRecord record = newRecord(
-                requestId, businessType, payload, createdAt, deadlineAt);
-        final BridgeRequestMessage message = newMessage(record, traceId);
+                requestId, businessType, payload, traceId, createdAt, deadlineAt);
 
         try {
             transactionTemplate.execute(status -> {
@@ -99,7 +96,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         }
 
         try {
-            publisher.send(requestTopic, requestId, message);
+            publisher.send(requestTopic, requestId, record.getRequestId());
         } catch (RuntimeException e) {
             log.warn("Failed to send ServiceBridge request {}", requestId, e);
             try {
@@ -143,13 +140,15 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
     private BridgeRequestRecord newRecord(String requestId,
                                           String businessType,
                                           JsonNode payload,
+                                          String traceId,
                                           LocalDateTime createdAt,
                                           LocalDateTime deadlineAt) {
         BridgeRequestRecord record = new BridgeRequestRecord();
         record.setRequestId(requestId);
         record.setProtocolVersion(ServiceBridgeProtocol.VERSION);
         record.setBusinessType(businessType);
-        record.setRequestPayload(payload);
+        record.setRequestPayload(payload.toString());
+        record.setTraceId(traceId);
         record.setWaitStatus(BridgeWaitStatus.WAITING);
         record.setProcessStatus(BridgeProcessStatus.PENDING);
         record.setCreatedAt(createdAt);
@@ -157,26 +156,15 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         return record;
     }
 
-    private BridgeRequestMessage newMessage(BridgeRequestRecord record, String traceId) {
-        BridgeRequestMessage message = new BridgeRequestMessage();
-        message.setProtocolVersion(record.getProtocolVersion());
-        message.setMessageId(idGenerator.nextId());
-        message.setRequestId(record.getRequestId());
-        message.setBusinessType(record.getBusinessType());
-        message.setPayload(record.getRequestPayload());
-        message.setCreatedAt(record.getCreatedAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        message.setClientDeadlineAt(
-                record.getClientDeadlineAt().atZone(ZoneId.systemDefault()).toInstant().toEpochMilli());
-        message.setTraceId(traceId);
-        return message;
-    }
-
-    private void validate(String businessType, JsonNode payload) {
+    private void validate(String businessType, JsonNode payload, String traceId) {
         if (businessType == null || businessType.trim().isEmpty()) {
             throw new IllegalArgumentException("businessType must not be blank");
         }
         if (payload == null || payload.isNull()) {
             throw new IllegalArgumentException("payload must not be null");
+        }
+        if (traceId != null && traceId.length() > 127) {
+            throw new IllegalArgumentException("traceId must not exceed 127 characters");
         }
         if (properties.getTimeout() == null || properties.getTimeout().isZero()
                 || properties.getTimeout().isNegative()) {

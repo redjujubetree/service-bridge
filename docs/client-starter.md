@@ -2,7 +2,7 @@
 
 ## 配置示例
 
-业务应用引入 `top.redjujubetree:bridge-client-starter:0.1.0-SNAPSHOT`、MySQL JDBC 驱动 `com.mysql:mysql-connector-j`，以及 BedrockMQ 客户端依赖 `top.redjujubetree:bedrockmq-spring-boot-starter:0.0.7`。
+业务应用引入 `top.redjujubetree:bridge-client-starter:0.1.1`、MySQL JDBC 驱动 `com.mysql:mysql-connector-j`，以及 BedrockMQ 客户端依赖 `top.redjujubetree:bedrockmq-spring-boot-starter:0.0.9`。
 
 以下示例中的 MySQL 数据库必须与 Server 共用，且已执行 ServiceBridge DDL。Redis Channel 在同一 Client 集群内保持一致。各示例的请求 Topic 和响应 Topic 均须与 Server 配置一致。
 
@@ -84,6 +84,8 @@ Optional<BridgeStoredResult> query(String requestId);
 ```
 
 Controller 不应调用 `getResult()`、`Thread.sleep()` 或循环查询。直接返回 `DeferredResult`，Spring MVC 会释放当前 Servlet 工作线程，在结果到达后重新调度响应。
+
+`traceId` 可为 `null`，非空时最多 127 个字符；超长会在提交请求前抛出 `IllegalArgumentException`。
 
 `query` 用于客户端断线或 HTTP 已超时后的主动查询。它不会修改 `wait_status`。
 

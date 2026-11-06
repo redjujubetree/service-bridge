@@ -1,6 +1,5 @@
 package top.redjujubetree.servicebridge.mq.bedrock;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import top.redjujubetree.servicebridge.mq.BridgeInboundHandler;
 import top.redjujubetree.servicebridge.mq.BridgeTransport;
 import org.springframework.beans.BeansException;
@@ -33,7 +32,7 @@ import java.util.Set;
 @ConditionalOnProperty(prefix = "service.bridge.mq", name = "provider", havingValue = "bedrock")
 public class BedrockBridgeAutoConfiguration {
     @Bean
-    public BridgeTransport bedrockBridgeTransport(MessageProducer producer, ObjectMapper mapper,
+    public BridgeTransport bedrockBridgeTransport(MessageProducer producer,
             BedrockSubscriptionMapper subscriptions,
             PlatformTransactionManager transactionManager,
             Environment environment) {
@@ -47,12 +46,7 @@ public class BedrockBridgeAutoConfiguration {
             if (active == null || active.isEmpty()) {
                 throw new IllegalStateException("No active BedrockMQ subscriber for " + topic);
             }
-            try {
-                Object json = mapper.readTree(payload);
-                sendTransaction.execute(status -> producer.send(topic, source, json));
-            } catch (java.io.IOException e) {
-                throw new IllegalArgumentException("Invalid bridge message JSON", e);
-            }
+            sendTransaction.execute(status -> producer.send(topic, source, payload));
         };
     }
 
@@ -68,6 +62,11 @@ public class BedrockBridgeAutoConfiguration {
         return "bridge-client-starter";
     }
 
+    /**
+     * 将 ServiceBridge 的入站处理器接入 BedrockMQ 的消费者注册表。
+     * 每个处理器可以订阅多个 Topic，消费组由处理器按 Topic 确定。
+     * 注册处理器后，同步补齐数据库中的订阅记录，供 BedrockMQ 投递消息。
+     */
     @Bean
     public static BeanPostProcessor bedrockBridgeRegistrar(ApplicationContext context) {
         return new BeanPostProcessor() {
@@ -78,6 +77,8 @@ public class BedrockBridgeAutoConfiguration {
                     return bean;
                 }
                 BedrockConsumerRegistry registry = (BedrockConsumerRegistry) bean;
+                // BedrockMQ 没有公开动态注册消费者的方法，只能访问其内部 registry。
+                // 字段不存在时立即失败，避免应用启动后静默丢失消息处理器。
                 Field field = ReflectionUtils.findField(BedrockConsumerRegistry.class, "registry");
                 if (field == null) {
                     throw new IllegalStateException("BedrockMQ consumer registry is incompatible");
@@ -86,6 +87,7 @@ public class BedrockBridgeAutoConfiguration {
                 Map<String, BedrockMessageConsumer> consumers =
                         (Map<String, BedrockMessageConsumer>) ReflectionUtils.getField(field, registry);
                 BedrockSubscriptionMapper subscriptions = context.getBean(BedrockSubscriptionMapper.class);
+                // 先读取已有订阅，重复启动时不覆盖原有的订阅配置。
                 Set<String> existingSubscriptions = new HashSet<>();
                 subscriptions.findAll().forEach(subscription -> existingSubscriptions.add(
                         BedrockConsumerRegistry.key(subscription.getTopic(), subscription.getConsumer())));
@@ -94,6 +96,7 @@ public class BedrockBridgeAutoConfiguration {
                         requireBedrockTopic(topic);
                         String group = handler.consumerGroup(topic);
                         String registrationKey = BedrockConsumerRegistry.key(topic, group);
+                        // 注册键由 Topic 和消费组组成；同一键只能对应一个处理器。
                         if (consumers == null || consumers.putIfAbsent(registrationKey,
                                 message -> handler.handle(topic, message.getPayload())) != null) {
                             throw new IllegalStateException("Duplicate BedrockMQ consumer: " + registrationKey);

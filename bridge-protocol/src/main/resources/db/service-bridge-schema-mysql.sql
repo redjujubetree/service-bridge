@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS service_bridge_request (
     protocol_version VARCHAR(16) NOT NULL COMMENT '消息协议版本',
     business_type VARCHAR(128) NOT NULL COMMENT '业务类型，用于路由到对应 Handler',
     request_payload LONGTEXT NOT NULL COMMENT '请求负载，JSON 格式',
+    trace_id VARCHAR(127) NULL COMMENT '请求链路追踪标识',
     wait_status VARCHAR(20) NOT NULL COMMENT '客户端等待状态：WAITING、RESPONDED、TIMED_OUT',
     process_status VARCHAR(20) NOT NULL COMMENT '服务端处理状态：PENDING、PROCESSING、SUCCESS、FAILED',
     result_payload LONGTEXT NULL COMMENT '成功结果负载，JSON 格式',
