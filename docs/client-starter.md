@@ -80,10 +80,18 @@ DeferredResult<ResponseEntity<BridgeHttpResponse>> request(
         JsonNode payload,
         String traceId);
 
+<T> DeferredResult<ResponseEntity<T>> request(
+        String businessType,
+        JsonNode payload,
+        String traceId,
+        BridgeResponseHandler<T> responseHandler);
+
 Optional<BridgeStoredResult> query(String requestId);
 ```
 
 Controller 不应调用 `getResult()`、`Thread.sleep()` 或循环查询。直接返回 `DeferredResult`，Spring MVC 会释放当前 Servlet 工作线程，在结果到达后重新调度响应。
+
+前三个参数的调用沿用默认的 `BridgeHttpResponse`。第四个重载允许按请求提供 `BridgeResponseHandler<T>`，由业务方生成完整的 `ResponseEntity<T>`，包括 HTTP 状态和响应体；`traceId` 不需要时传 `null`。处理器的 `fromStored` 收到数据库中的最终结果，`timeout` 处理 HTTP 等待超时，`unavailable` 处理等待容量不足、请求入库或 MQ 发送失败等客户端故障。三个方法都应返回非空响应。处理器若作为共享 Bean 使用，需保证线程安全。
 
 `traceId` 可为 `null`，非空时最多 127 个字符；超长会在提交请求前抛出 `IllegalArgumentException`。
 
@@ -97,7 +105,7 @@ Client 与 Server 都需引入 BedrockMQ 客户端依赖，并将 `service.bridg
 
 Client 定时从数据库补查等待中的请求结果默认关闭。需要在完成通知丢失时提前补回 HTTP 响应，可显式配置 `service.bridge.client.reconciliation-enabled: true`；检查间隔由 `service.bridge.client.reconciliation-interval` 控制，默认 5 秒。关闭时，HTTP 超时回调仍会查询数据库中的最终结果。
 
-## 响应结构
+## 默认响应结构
 
 ```json
 {
@@ -118,7 +126,40 @@ Client 定时从数据库补查等待中的请求结果默认关闭。需要在�
 | 等待容量达到上限 | 503 | `SERVICE_UNAVAILABLE` |
 | 请求提交或 REQUEST 发送失败 | 503 | `SERVICE_UNAVAILABLE` |
 
-如业务系统要求统一返回 HTTP 200，可自定义 `BridgeResponseFactory`；默认自动配置将在业务方声明同类型 Bean 后让出，但修改时应同步调整自动配置条件。
+业务系统可为单次请求指定自己的返回类型，例如直接返回 Server 写入的 JSON 结果：
+
+```java
+BridgeResponseHandler<JsonNode> responses = new BridgeResponseHandler<JsonNode>() {
+    public ResponseEntity<JsonNode> fromStored(BridgeStoredResult stored) {
+        if (stored.getProcessStatus() == BridgeProcessStatus.SUCCESS) {
+            try {
+                return ResponseEntity.ok(objectMapper.readTree(stored.getResultPayload()));
+            } catch (JsonProcessingException e) {
+                throw new IllegalStateException("Invalid stored result", e);
+            }
+        }
+        ObjectNode error = objectMapper.createObjectNode()
+                .put("code", stored.getErrorCode())
+                .put("message", stored.getErrorMessage());
+        return ResponseEntity.status(422).body(error);
+    }
+
+    public ResponseEntity<JsonNode> timeout(String requestId) {
+        return ResponseEntity.status(408).body(
+                objectMapper.createObjectNode().put("requestId", requestId).put("code", "TIMEOUT"));
+    }
+
+    public ResponseEntity<JsonNode> unavailable(String requestId, String message) {
+        return ResponseEntity.status(503).body(
+                objectMapper.createObjectNode().put("requestId", requestId).put("message", message));
+    }
+};
+
+return serviceBridgeClient.request("GENERATE_REPORT", payload, null, responses);
+```
+
+需要统一调整所有默认响应时，也可声明自己的 `BridgeResponseFactory` Bean 覆盖自动配置；这种方式的返回体仍是 `BridgeHttpResponse`，业务自定义返回类型应使用上述重载。
+如果业务自行实现了 `ServiceBridgeClient`，还需实现这个新重载；接口的默认实现会抛出 `UnsupportedOperationException`。
 
 ## 自定义请求存储
 

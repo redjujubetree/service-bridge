@@ -80,9 +80,8 @@ public class ServiceBridgeClientAutoConfiguration {
     @Bean
     public BridgeCompletionCoordinator bridgeCompletionCoordinator(
             TaskWaitRegistry registry,
-            BridgeRequestStore store,
-            BridgeResponseFactory responseFactory) {
-        return new BridgeCompletionCoordinator(registry, store, responseFactory);
+            BridgeRequestStore store) {
+        return new BridgeCompletionCoordinator(registry, store);
     }
 
     @Bean

@@ -22,7 +22,8 @@ class WaitContextTest {
     @Test
     void onlyOneThreadCanClaimCompletion() throws Exception {
         DeferredResult<ResponseEntity<BridgeHttpResponse>> deferred = new DeferredResult<ResponseEntity<BridgeHttpResponse>>();
-        WaitContext context = new WaitContext("request-1", deferred);
+        WaitContext<BridgeHttpResponse> context = new WaitContext<BridgeHttpResponse>(
+                "request-1", deferred, new BridgeResponseFactory(new com.fasterxml.jackson.databind.ObjectMapper()));
         ExecutorService executor = Executors.newFixedThreadPool(8);
         CountDownLatch start = new CountDownLatch(1);
         AtomicInteger winners = new AtomicInteger();
@@ -51,7 +52,7 @@ class WaitContextTest {
     @Test
     void registryEnforcesCapacityAndReleasesPermit() {
         TaskWaitRegistry registry = new TaskWaitRegistry(1);
-        WaitContext first = context("first");
+        WaitContext<BridgeHttpResponse> first = context("first");
         registry.register(first);
 
         org.junit.jupiter.api.Assertions.assertThrows(
@@ -63,9 +64,10 @@ class WaitContextTest {
         assertEquals(1, registry.size());
     }
 
-    private WaitContext context(String requestId) {
-        return new WaitContext(
+    private WaitContext<BridgeHttpResponse> context(String requestId) {
+        return new WaitContext<BridgeHttpResponse>(
                 requestId,
-                new DeferredResult<ResponseEntity<BridgeHttpResponse>>());
+                new DeferredResult<ResponseEntity<BridgeHttpResponse>>(),
+                new BridgeResponseFactory(new com.fasterxml.jackson.databind.ObjectMapper()));
     }
 }

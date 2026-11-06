@@ -24,18 +24,18 @@ public class BridgeResultReconciler implements Runnable {
 
     @Override
     public void run() {
-        Collection<WaitContext> contexts = registry.snapshot();
+        Collection<WaitContext<?>> contexts = registry.snapshot();
         if (contexts.isEmpty()) {
             return;
         }
         List<String> ids = new ArrayList<String>(contexts.size());
-        for (WaitContext context : contexts) {
+        for (WaitContext<?> context : contexts) {
             if (context.isWaiting()) {
                 ids.add(context.getRequestId());
             }
         }
         Map<String, BridgeStoredResult> terminal = requestStore.findTerminal(ids);
-        for (WaitContext context : contexts) {
+        for (WaitContext<?> context : contexts) {
             BridgeStoredResult stored = terminal.get(context.getRequestId());
             if (stored != null) {
                 coordinator.complete(context, stored);

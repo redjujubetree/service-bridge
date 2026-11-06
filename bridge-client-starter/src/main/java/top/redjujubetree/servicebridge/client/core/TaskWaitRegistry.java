@@ -10,8 +10,8 @@ import java.util.concurrent.Semaphore;
 
 public class TaskWaitRegistry {
 
-    private final ConcurrentMap<String, WaitContext> waiting =
-            new ConcurrentHashMap<String, WaitContext>();
+    private final ConcurrentMap<String, WaitContext<?>> waiting =
+            new ConcurrentHashMap<String, WaitContext<?>>();
     private final Semaphore capacity;
 
     public TaskWaitRegistry(int maxWaitingRequests) {
@@ -21,22 +21,22 @@ public class TaskWaitRegistry {
         this.capacity = new Semaphore(maxWaitingRequests);
     }
 
-    public void register(WaitContext context) {
+    public void register(WaitContext<?> context) {
         if (!capacity.tryAcquire()) {
             throw new TooManyWaitingRequestsException("Too many waiting ServiceBridge requests");
         }
-        WaitContext previous = waiting.putIfAbsent(context.getRequestId(), context);
+        WaitContext<?> previous = waiting.putIfAbsent(context.getRequestId(), context);
         if (previous != null) {
             capacity.release();
             throw new IllegalStateException("Duplicate requestId: " + context.getRequestId());
         }
     }
 
-    public WaitContext get(String requestId) {
+    public WaitContext<?> get(String requestId) {
         return waiting.get(requestId);
     }
 
-    public boolean remove(String requestId, WaitContext context) {
+    public boolean remove(String requestId, WaitContext<?> context) {
         boolean removed = waiting.remove(requestId, context);
         if (removed) {
             capacity.release();
@@ -44,8 +44,8 @@ public class TaskWaitRegistry {
         return removed;
     }
 
-    public Collection<WaitContext> snapshot() {
-        return new ArrayList<WaitContext>(waiting.values());
+    public Collection<WaitContext<?>> snapshot() {
+        return new ArrayList<WaitContext<?>>(waiting.values());
     }
 
     public int size() {

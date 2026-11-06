@@ -9,7 +9,7 @@ import top.redjujubetree.servicebridge.protocol.status.BridgeProcessStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
-public class BridgeResponseFactory {
+public class BridgeResponseFactory implements BridgeResponseHandler<BridgeHttpResponse> {
 
     private final ObjectMapper objectMapper;
 

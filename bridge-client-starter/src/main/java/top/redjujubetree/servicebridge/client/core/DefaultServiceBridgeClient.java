@@ -64,18 +64,28 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
     @Override
     public DeferredResult<ResponseEntity<BridgeHttpResponse>> request(
             String businessType, JsonNode payload, String traceId) {
+        return request(businessType, payload, traceId, responseFactory);
+    }
+
+    @Override
+    public <T> DeferredResult<ResponseEntity<T>> request(
+            String businessType, JsonNode payload, String traceId,
+            BridgeResponseHandler<T> responseHandler) {
+        if (responseHandler == null) {
+            throw new IllegalArgumentException("responseHandler must not be null");
+        }
         validate(businessType, payload, traceId);
         final String requestTopic = topics.requestTopicFor(businessType);
         String requestId = idGenerator.nextId();
-        DeferredResult<ResponseEntity<BridgeHttpResponse>> deferred =
-                new DeferredResult<ResponseEntity<BridgeHttpResponse>>(properties.getTimeout().toMillis());
+        DeferredResult<ResponseEntity<T>> deferred =
+                new DeferredResult<ResponseEntity<T>>(properties.getTimeout().toMillis());
 
-        final WaitContext context = new WaitContext(requestId, deferred);
+        final WaitContext<T> context = new WaitContext<T>(requestId, deferred, responseHandler);
         configureCallbacks(context);
         try {
             waitRegistry.register(context);
         } catch (TooManyWaitingRequestsException e) {
-            context.tryComplete(responseFactory.unavailable(requestId, e.getMessage()));
+            completeUnavailable(context, e.getMessage());
             return deferred;
         }
 
@@ -91,7 +101,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
             });
         } catch (RuntimeException e) {
             waitRegistry.remove(requestId, context);
-            context.tryComplete(responseFactory.unavailable(requestId, "Failed to submit ServiceBridge request"));
+            completeUnavailable(context, "Failed to submit ServiceBridge request");
             return deferred;
         }
 
@@ -111,7 +121,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
                 log.error("Failed to mark request {} as MQ_SEND_FAILED", requestId, updateFailure);
             }
             waitRegistry.remove(requestId, context);
-            context.tryComplete(responseFactory.unavailable(requestId, "Failed to send ServiceBridge request"));
+            completeUnavailable(context, "Failed to send ServiceBridge request");
             return deferred;
         }
 
@@ -127,7 +137,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         return requestStore.find(requestId);
     }
 
-    private void configureCallbacks(final WaitContext context) {
+    private <T> void configureCallbacks(final WaitContext<T> context) {
         context.getDeferredResult().onTimeout(() -> completionCoordinator.onTimeout(context));
         context.getDeferredResult().onError(error -> {
             context.cancel();
@@ -135,6 +145,17 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         });
         context.getDeferredResult().onCompletion(
                 () -> waitRegistry.remove(context.getRequestId(), context));
+    }
+
+    private <T> void completeUnavailable(WaitContext<T> context, String message) {
+        if (!context.tryClaim()) {
+            return;
+        }
+        try {
+            context.finish(context.getResponseHandler().unavailable(context.getRequestId(), message));
+        } catch (RuntimeException handlerFailure) {
+            context.finishError(handlerFailure);
+        }
     }
 
     private BridgeRequestRecord newRecord(String requestId,

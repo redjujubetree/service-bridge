@@ -12,18 +12,14 @@ public class BridgeCompletionCoordinator {
 
     private final TaskWaitRegistry waitRegistry;
     private final BridgeRequestStore requestStore;
-    private final BridgeResponseFactory responseFactory;
-
     public BridgeCompletionCoordinator(TaskWaitRegistry waitRegistry,
-                                       BridgeRequestStore requestStore,
-                                       BridgeResponseFactory responseFactory) {
+                                       BridgeRequestStore requestStore) {
         this.waitRegistry = waitRegistry;
         this.requestStore = requestStore;
-        this.responseFactory = responseFactory;
     }
 
     public void onCompletionNotification(String requestId) {
-        WaitContext context = waitRegistry.get(requestId);
+        WaitContext<?> context = waitRegistry.get(requestId);
         if (context == null || !context.isWaiting()) {
             return;
         }
@@ -33,13 +29,13 @@ public class BridgeCompletionCoordinator {
         }
     }
 
-    public void complete(WaitContext context, BridgeStoredResult stored) {
+    public <T> void complete(WaitContext<T> context, BridgeStoredResult stored) {
         if (!stored.getProcessStatus().isTerminal() || !context.tryClaim()) {
             return;
         }
         try {
             if (stored.getWaitStatus() == BridgeWaitStatus.TIMED_OUT) {
-                context.finish(responseFactory.timeout(context.getRequestId()));
+                context.finish(context.getResponseHandler().timeout(context.getRequestId()));
                 return;
             }
 
@@ -48,20 +44,19 @@ public class BridgeCompletionCoordinator {
             if (!responded) {
                 Optional<BridgeStoredResult> latest = requestStore.find(context.getRequestId());
                 if (latest.isPresent() && latest.get().getWaitStatus() == BridgeWaitStatus.TIMED_OUT) {
-                    context.finish(responseFactory.timeout(context.getRequestId()));
+                    context.finish(context.getResponseHandler().timeout(context.getRequestId()));
                     return;
                 }
             }
-            context.finish(responseFactory.fromStored(stored));
+            context.finish(context.getResponseHandler().fromStored(stored));
         } catch (RuntimeException e) {
-            context.finish(responseFactory.unavailable(
-                    context.getRequestId(), "Failed to finalize ServiceBridge response"));
+            finishUnavailable(context, "Failed to finalize ServiceBridge response");
         } finally {
             waitRegistry.remove(context.getRequestId(), context);
         }
     }
 
-    public void onTimeout(WaitContext context) {
+    public <T> void onTimeout(WaitContext<T> context) {
         if (!context.tryClaim()) {
             return;
         }
@@ -69,7 +64,7 @@ public class BridgeCompletionCoordinator {
             boolean timedOut = requestStore.markTimedOutIfWaitingAndUnfinished(
                     context.getRequestId(), LocalDateTime.now());
             if (timedOut) {
-                context.finish(responseFactory.timeout(context.getRequestId()));
+                context.finish(context.getResponseHandler().timeout(context.getRequestId()));
                 return;
             }
 
@@ -77,15 +72,22 @@ public class BridgeCompletionCoordinator {
             if (stored.isPresent() && stored.get().getProcessStatus().isTerminal()
                     && stored.get().getWaitStatus() != BridgeWaitStatus.TIMED_OUT) {
                 requestStore.markRespondedIfWaiting(context.getRequestId(), LocalDateTime.now());
-                context.finish(responseFactory.fromStored(stored.get()));
+                context.finish(context.getResponseHandler().fromStored(stored.get()));
             } else {
-                context.finish(responseFactory.timeout(context.getRequestId()));
+                context.finish(context.getResponseHandler().timeout(context.getRequestId()));
             }
         } catch (RuntimeException e) {
-            context.finish(responseFactory.unavailable(
-                    context.getRequestId(), "Failed to determine ServiceBridge timeout state"));
+            finishUnavailable(context, "Failed to determine ServiceBridge timeout state");
         } finally {
             waitRegistry.remove(context.getRequestId(), context);
+        }
+    }
+
+    private <T> void finishUnavailable(WaitContext<T> context, String message) {
+        try {
+            context.finish(context.getResponseHandler().unavailable(context.getRequestId(), message));
+        } catch (RuntimeException handlerFailure) {
+            context.finishError(handlerFailure);
         }
     }
 }
