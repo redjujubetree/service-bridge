@@ -23,7 +23,7 @@ class WaitContextTest {
     void onlyOneThreadCanClaimCompletion() throws Exception {
         DeferredResult<ResponseEntity<BridgeHttpResponse>> deferred = new DeferredResult<ResponseEntity<BridgeHttpResponse>>();
         WaitContext<BridgeHttpResponse> context = new WaitContext<BridgeHttpResponse>(
-                "request-1", deferred, new BridgeResponseFactory(new com.fasterxml.jackson.databind.ObjectMapper()));
+                "request-1", deferred, new DefaultBridgeResponseHandler(new com.fasterxml.jackson.databind.ObjectMapper()));
         ExecutorService executor = Executors.newFixedThreadPool(8);
         CountDownLatch start = new CountDownLatch(1);
         AtomicInteger winners = new AtomicInteger();
@@ -68,6 +68,6 @@ class WaitContextTest {
         return new WaitContext<BridgeHttpResponse>(
                 requestId,
                 new DeferredResult<ResponseEntity<BridgeHttpResponse>>(),
-                new BridgeResponseFactory(new com.fasterxml.jackson.databind.ObjectMapper()));
+                new DefaultBridgeResponseHandler(new com.fasterxml.jackson.databind.ObjectMapper()));
     }
 }

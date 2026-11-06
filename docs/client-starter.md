@@ -158,7 +158,7 @@ BridgeResponseHandler<JsonNode> responses = new BridgeResponseHandler<JsonNode>(
 return serviceBridgeClient.request("GENERATE_REPORT", payload, null, responses);
 ```
 
-需要统一调整所有默认响应时，也可声明自己的 `BridgeResponseFactory` Bean 覆盖自动配置；这种方式的返回体仍是 `BridgeHttpResponse`，业务自定义返回类型应使用上述重载。
+需要统一调整所有默认响应时，也可声明自己的 `DefaultBridgeResponseHandler` Bean 覆盖自动配置；这种方式的返回体仍是 `BridgeHttpResponse`，业务自定义返回类型应使用上述重载。
 如果业务自行实现了 `ServiceBridgeClient`，还需实现这个新重载；接口的默认实现会抛出 `UnsupportedOperationException`。
 
 ## 自定义请求存储

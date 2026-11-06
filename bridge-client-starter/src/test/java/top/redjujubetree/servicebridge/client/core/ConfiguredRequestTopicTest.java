@@ -34,7 +34,7 @@ class ConfiguredRequestTopicTest {
         DefaultServiceBridgeClient client = new DefaultServiceBridgeClient(
                 new ServiceBridgeClientProperties(), ids, store,
                 new TaskWaitRegistry(10), mock(BridgeCompletionCoordinator.class),
-                mock(BridgeResponseFactory.class), publisher, topics,
+                mock(DefaultBridgeResponseHandler.class), publisher, topics,
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
 
         String traceId = new String(new char[127]).replace('\0', 'x');
@@ -61,7 +61,7 @@ class ConfiguredRequestTopicTest {
         DefaultServiceBridgeClient client = new DefaultServiceBridgeClient(
                 new ServiceBridgeClientProperties(), ids, store,
                 new TaskWaitRegistry(10), mock(BridgeCompletionCoordinator.class),
-                mock(BridgeResponseFactory.class), publisher, topics,
+                mock(DefaultBridgeResponseHandler.class), publisher, topics,
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
 
         client.request("ORDER", new ObjectMapper().readTree("{}"));

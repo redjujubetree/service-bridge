@@ -6,7 +6,7 @@ import top.redjujubetree.servicebridge.client.config.ServiceBridgeClientProperti
 import top.redjujubetree.servicebridge.client.core.BridgeCompletionCoordinator;
 import top.redjujubetree.servicebridge.client.core.BridgeReconciliationScheduler;
 import top.redjujubetree.servicebridge.client.core.BridgeRequestIdGenerator;
-import top.redjujubetree.servicebridge.client.core.BridgeResponseFactory;
+import top.redjujubetree.servicebridge.client.core.DefaultBridgeResponseHandler;
 import top.redjujubetree.servicebridge.client.core.BridgeResultReconciler;
 import top.redjujubetree.servicebridge.client.core.DefaultServiceBridgeClient;
 import top.redjujubetree.servicebridge.client.core.ServiceBridgeClient;
@@ -73,8 +73,8 @@ public class ServiceBridgeClientAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean
-    public BridgeResponseFactory bridgeResponseFactory(ObjectMapper objectMapper) {
-        return new BridgeResponseFactory(objectMapper);
+    public DefaultBridgeResponseHandler defaultBridgeResponseHandler(ObjectMapper objectMapper) {
+        return new DefaultBridgeResponseHandler(objectMapper);
     }
 
     @Bean
@@ -138,7 +138,7 @@ public class ServiceBridgeClientAutoConfiguration {
             BridgeRequestStore requestStore,
             TaskWaitRegistry registry,
             BridgeCompletionCoordinator coordinator,
-            BridgeResponseFactory responseFactory,
+            DefaultBridgeResponseHandler defaultResponseHandler,
             BridgeMessagePublisher publisher,
             BridgeTopicProperties topics,
             PlatformTransactionManager transactionManager) {
@@ -148,7 +148,7 @@ public class ServiceBridgeClientAutoConfiguration {
                 requestStore,
                 registry,
                 coordinator,
-                responseFactory,
+                defaultResponseHandler,
                 publisher,
                 topics,
                 new TransactionTemplate(transactionManager));

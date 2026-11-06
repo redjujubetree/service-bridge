@@ -94,7 +94,7 @@ class CustomResponseHandlerTest {
         TaskWaitRegistry registry = new TaskWaitRegistry(1);
         DefaultServiceBridgeClient client = new DefaultServiceBridgeClient(
                 new ServiceBridgeClientProperties(), ids, store, registry,
-                mock(BridgeCompletionCoordinator.class), new BridgeResponseFactory(mapper),
+                mock(BridgeCompletionCoordinator.class), new DefaultBridgeResponseHandler(mapper),
                 publisher, new BridgeTopicProperties(), transactions);
 
         DeferredResult<ResponseEntity<String>> deferred = client.request(

@@ -30,7 +30,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
     private final BridgeRequestStore requestStore;
     private final TaskWaitRegistry waitRegistry;
     private final BridgeCompletionCoordinator completionCoordinator;
-    private final BridgeResponseFactory responseFactory;
+    private final DefaultBridgeResponseHandler defaultResponseHandler;
     private final BridgeMessagePublisher publisher;
     private final BridgeTopicProperties topics;
     private final TransactionTemplate transactionTemplate;
@@ -40,7 +40,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
                                       BridgeRequestStore requestStore,
                                       TaskWaitRegistry waitRegistry,
                                       BridgeCompletionCoordinator completionCoordinator,
-                                      BridgeResponseFactory responseFactory,
+                                      DefaultBridgeResponseHandler defaultResponseHandler,
                                       BridgeMessagePublisher publisher,
                                       BridgeTopicProperties topics,
                                       TransactionTemplate transactionTemplate) {
@@ -49,7 +49,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
         this.requestStore = requestStore;
         this.waitRegistry = waitRegistry;
         this.completionCoordinator = completionCoordinator;
-        this.responseFactory = responseFactory;
+        this.defaultResponseHandler = defaultResponseHandler;
         this.publisher = publisher;
         this.topics = topics;
         this.transactionTemplate = transactionTemplate;
@@ -64,7 +64,7 @@ public class DefaultServiceBridgeClient implements ServiceBridgeClient {
     @Override
     public DeferredResult<ResponseEntity<BridgeHttpResponse>> request(
             String businessType, JsonNode payload, String traceId) {
-        return request(businessType, payload, traceId, responseFactory);
+        return request(businessType, payload, traceId, defaultResponseHandler);
     }
 
     @Override

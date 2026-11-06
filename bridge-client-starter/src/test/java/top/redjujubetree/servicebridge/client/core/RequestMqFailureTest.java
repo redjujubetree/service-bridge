@@ -40,7 +40,7 @@ class RequestMqFailureTest {
         DefaultServiceBridgeClient client = new DefaultServiceBridgeClient(
                 new ServiceBridgeClientProperties(), ids, store,
                 new TaskWaitRegistry(10), mock(BridgeCompletionCoordinator.class),
-                new BridgeResponseFactory(mapper), publisher, new BridgeTopicProperties(),
+                new DefaultBridgeResponseHandler(mapper), publisher, new BridgeTopicProperties(),
                 new TransactionTemplate(new DataSourceTransactionManager(dataSource)));
 
         ResponseEntity<?> response = (ResponseEntity<?>) client.request("TEST", mapper.readTree("{}"))

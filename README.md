@@ -16,7 +16,7 @@ Java 8 编译目标，构建使用 JDK 17。消息语义为至少一次，业务
 
 ## 项目版本
 
-所有模块的版本由根目录 `pom.xml` 中的 `revision` 属性统一管理。升级项目版本时只需修改该属性；各子模块的父版本使用 `${revision}`。临时指定版本也可以运行 `mvn -Drevision=0.2.0-SNAPSHOT validate`。打包或发布时，Flatten Maven Plugin 会将发布用 POM 中的版本占位符展开为实际版本。
+所有模块的版本由根目录 `pom.xml` 中的 `revision` 属性统一管理。升级项目版本时只需修改该属性；各子模块的父版本使用 `${revision}`。临时指定版本也可以运行 `mvn -Drevision=0.2.1-SNAPSHOT validate`。打包或发布时，Flatten Maven Plugin 会将发布用 POM 中的版本占位符展开为实际版本。
 
 ## 一致性与消息流程
 
@@ -44,7 +44,7 @@ Client 与 Server 应配置相同的 `service.bridge.mq.provider: bedrock`、REQ
 <dependency>
     <groupId>top.redjujubetree</groupId>
     <artifactId>bridge-client-starter</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.1</version>
 </dependency>
 <dependency>
     <groupId>top.redjujubetree</groupId>
