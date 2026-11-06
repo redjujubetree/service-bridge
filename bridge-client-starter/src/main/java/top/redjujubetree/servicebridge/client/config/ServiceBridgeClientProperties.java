@@ -10,7 +10,7 @@ public class ServiceBridgeClientProperties {
     private boolean enabled = true;
     private Duration timeout = Duration.ofSeconds(60);
     private String redisChannel = "service-bridge:completed";
-    private int maxWaitingRequests = 10000;
+    private int maxWaitingRequests = 100;
     private boolean reconciliationEnabled = false;
     private Duration reconciliationInterval = Duration.ofSeconds(5);
 
