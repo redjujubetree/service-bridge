@@ -2,7 +2,6 @@ package top.redjujubetree.servicebridge.example.client.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import top.redjujubetree.servicebridge.client.core.ServiceBridgeClient;
-import top.redjujubetree.servicebridge.client.model.BridgeHttpResponse;
 import top.redjujubetree.servicebridge.client.model.BridgeStoredResult;
 import org.springframework.http.ResponseEntity;
 import org.springframework.util.StringUtils;
@@ -14,6 +13,7 @@ import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.context.request.async.DeferredResult;
+import top.redjujubetree.servicebridge.example.client.handler.ReportResponseHandler;
 
 @RestController
 @RequestMapping("/reports")
@@ -22,19 +22,19 @@ public class ReportController {
     private static final String BUSINESS_TYPE = "GENERATE_REPORT";
 
     private final ServiceBridgeClient serviceBridgeClient;
+    private final ReportResponseHandler responseHandler;
 
-    public ReportController(ServiceBridgeClient serviceBridgeClient) {
+    public ReportController(ServiceBridgeClient serviceBridgeClient, ReportResponseHandler responseHandler) {
         this.serviceBridgeClient = serviceBridgeClient;
+        this.responseHandler = responseHandler;
     }
 
     @PostMapping
-    public DeferredResult<ResponseEntity<BridgeHttpResponse>> create(
+    public DeferredResult<ResponseEntity<JsonNode>> create(
             @RequestBody JsonNode request,
             @RequestHeader(value = "X-Trace-Id", required = false) String traceId) {
-        if (StringUtils.hasText(traceId)) {
-            return serviceBridgeClient.request(BUSINESS_TYPE, request, traceId);
-        }
-        return serviceBridgeClient.request(BUSINESS_TYPE, request);
+        return serviceBridgeClient.request(
+                BUSINESS_TYPE, request, StringUtils.hasText(traceId) ? traceId : null, responseHandler);
     }
 
     @GetMapping("/{requestId}")
