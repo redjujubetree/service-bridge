@@ -2,7 +2,7 @@
 
 ## 配置示例
 
-业务应用引入 `top.redjujubetree:bridge-client-starter:0.1.1`、MySQL JDBC 驱动 `com.mysql:mysql-connector-j`，以及 BedrockMQ 客户端依赖 `top.redjujubetree:bedrockmq-spring-boot-starter:0.0.9`。
+业务应用引入 `top.redjujubetree:bridge-client-starter:0.2.1`、MySQL JDBC 驱动 `com.mysql:mysql-connector-j`，以及 BedrockMQ 客户端依赖 `top.redjujubetree:bedrockmq-spring-boot-starter:0.1.0`。
 
 以下示例中的 MySQL 数据库必须与 Server 共用，且已执行 ServiceBridge DDL。Redis Channel 在同一 Client 集群内保持一致。各示例的请求 Topic 和响应 Topic 均须与 Server 配置一致。
 

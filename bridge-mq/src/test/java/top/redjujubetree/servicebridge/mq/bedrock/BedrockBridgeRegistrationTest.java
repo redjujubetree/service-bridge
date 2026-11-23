@@ -8,15 +8,17 @@ import org.springframework.context.annotation.AnnotationConfigApplicationContext
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import top.redjujubetree.bedrock.mq.consumer.BedrockConsumerRegistry;
+import top.redjujubetree.bedrock.mq.entity.BedrockMessage;
 import top.redjujubetree.bedrock.mq.entity.BedrockSubscription;
 import top.redjujubetree.bedrock.mq.mapper.BedrockSubscriptionMapper;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicReference;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -37,7 +39,21 @@ class BedrockBridgeRegistrationTest {
     }
 
     @Test
-    void registersConsumerWithoutInsertingExistingSubscription() {
+    void registeredConsumerDelegatesPayloadToHandler() throws Exception {
+        try (AnnotationConfigApplicationContext context =
+                     new AnnotationConfigApplicationContext(TestConfiguration.class)) {
+            BedrockMessage message = new BedrockMessage();
+            message.setPayload("request-123");
+            context.getBean(BedrockConsumerRegistry.class)
+                    .getConsumer("custom.request", "bridge-server-custom").consume(message);
+            assertEquals("request-123", TestConfiguration.receivedPayload.get());
+        } finally {
+            TestConfiguration.receivedPayload.set(null);
+        }
+    }
+
+    @Test
+    void registersConsumerWithExistingSubscription() {
         BedrockSubscription existing = new BedrockSubscription();
         existing.setTopic("custom.request");
         existing.setConsumer("bridge-server-custom");
@@ -46,7 +62,7 @@ class BedrockBridgeRegistrationTest {
                      new AnnotationConfigApplicationContext(TestConfiguration.class)) {
             assertTrue(context.getBean(BedrockConsumerRegistry.class).getRegisteredKeys()
                     .contains(BedrockConsumerRegistry.key("custom.request", "bridge-server-custom")));
-            verify(context.getBean(BedrockSubscriptionMapper.class), never())
+            verify(context.getBean(BedrockSubscriptionMapper.class))
                     .upsert("custom.request", "bridge-server-custom", 10);
             verify(context.getBean(BedrockSubscriptionMapper.class))
                     .upsert("another.request", "bridge-server-another", 10);
@@ -58,6 +74,7 @@ class BedrockBridgeRegistrationTest {
     @Configuration
     static class TestConfiguration {
         static BedrockSubscription existing;
+        static final AtomicReference<String> receivedPayload = new AtomicReference<>();
 
         @Bean
         static BeanPostProcessor registrar(ApplicationContext context) {
@@ -89,7 +106,7 @@ class BedrockBridgeRegistrationTest {
                 public String consumerGroup(String topic) {
                     return topic.equals("custom.request") ? "bridge-server-custom" : "bridge-server-another";
                 }
-                public void handle(String payload) { }
+                public void handle(String payload) { receivedPayload.set(payload); }
             };
         }
     }

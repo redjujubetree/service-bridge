@@ -36,7 +36,7 @@ Server 每 5 秒检查已过期的 `processing_expires_at`，按原 `attemptToke
 
 ## BedrockMQ 接入
 
-还需执行 BedrockMQ 自带的三张表 DDL
+还需执行 BedrockMQ 自带的三张表 DDL。
 
 Client 与 Server 应配置相同的 `service.bridge.mq.provider: bedrock`、REQUEST Topic 和 RESPONSE Topic。两个 Starter 都会引入 `bridge-mq`；业务方需显式加入 BedrockMQ 客户端依赖：
 
@@ -49,7 +49,7 @@ Client 与 Server 应配置相同的 `service.bridge.mq.provider: bedrock`、REQ
 <dependency>
     <groupId>top.redjujubetree</groupId>
     <artifactId>bedrockmq-spring-boot-starter</artifactId>
-    <version>0.0.9</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
@@ -94,6 +94,8 @@ service:
 映射非空时，Client 只接受映射中列出的 `businessType`；Server 订阅所有不同的请求 Topic，并校验消息的业务类型与 Topic 是否匹配。多个业务可以共用一个请求 Topic。未配置映射或映射为空时，所有业务使用单个 `request-topic`（默认 `service-bridge.request`）。包含大写字母或特殊字符的业务类型应使用带引号的方括号键，以便 Spring Boot 原样绑定。
 
 同一请求 Topic 的 Server 实例使用相同消费组，不同请求 Topic 使用不同消费组；Client 实例使用 `service-bridge-client` 消费组。每个 Server 逻辑集群应加载相同的 Handler 集合；不同业务集群应使用不同 REQUEST Topic。
+
+ServiceBridge 使用 BedrockMQ 0.1.0 的 `BedrockConsumerRegistry.registerConsumer` 注册入站处理器。注册时会创建订阅并启动对应的轮询；已有订阅的启停状态和最大重试次数保持不变。重复注册相同的 Topic 和消费组会使应用启动失败。
 
 
 更多说明见 [架构与一致性](docs/architecture.md)、[Client Starter](docs/client-starter.md)、[Server Starter](docs/server-starter.md)、[数据库](docs/database.md) 和 [运维](docs/operations.md)。

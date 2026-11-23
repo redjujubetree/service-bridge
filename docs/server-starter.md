@@ -4,6 +4,8 @@
 
 多个请求 Topic 使用 `service.bridge.request-topics` 配置业务类型到 Topic 的映射，且与 Client 保持一致。Server 为每个不同的请求 Topic 建立订阅，并拒绝业务类型与收到的 Topic 不匹配的消息；多个业务可共用一个 Topic。配置映射后，单个 `request-topic` 不再用于请求订阅。
 
+ServiceBridge 通过 BedrockMQ 0.1.0 的 `BedrockConsumerRegistry.registerConsumer` 注册请求处理器。注册会创建订阅并启动该 Topic 和消费组的轮询；已有订阅的启停状态和最大重试次数保持不变。相同组合重复注册会导致启动失败。
+
 ## Handler SPI
 
 每个 `businessType` 只能有一个 Handler。启动时发现重复类型会直接失败，避免运行时随机路由。
