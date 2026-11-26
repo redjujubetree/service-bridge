@@ -18,6 +18,32 @@ Java 8 编译目标，构建使用 JDK 17。消息语义为至少一次，业务
 
 所有模块的版本由根目录 `pom.xml` 中的 `revision` 属性统一管理。升级项目版本时只需修改该属性；各子模块的父版本使用 `${revision}`。临时指定版本也可以运行 `mvn -Drevision=0.2.1-SNAPSHOT validate`。打包或发布时，Flatten Maven Plugin 会将发布用 POM 中的版本占位符展开为实际版本。
 
+## 发布到 Maven Central
+
+生成源码包、Javadoc 包并使用 GPG 签名，再通过 Sonatype Central Publishing Plugin 上传。发布内容为父 POM 和四个 `bridge-*` 库模块；`example` 下的示例应用不发布。
+
+发布前确认 `revision` 是尚未发布的正式版本，已在 Central Portal 验证 `top.redjujubetree` 命名空间，并在 Maven `settings.xml` 中配置 Central Portal 用户令牌：
+
+```xml
+<servers>
+    <server>
+        <id>central</id>
+        <username>令牌用户名</username>
+        <password>令牌密码</password>
+    </server>
+    <server>
+        <id>gpg.passphrase</id>
+        <passphrase>GPG 密钥口令</passphrase>
+    </server>
+</servers>
+```
+
+```bash
+mvn -Prelease -pl :service-bridge-parent,:bridge-protocol,:bridge-mq,:bridge-client-starter,:bridge-server-starter deploy
+```
+
+该命令会自动发布通过 Central 校验的构件并等待发布完成；运行前先完成本地构建和测试。若 Maven 镜像尚未同步 BedrockMQ 0.1.0，请切换至 Maven Central 官方仓库。不要将令牌或私钥提交到仓库。
+
 ## 一致性与消息流程
 
 ```text
@@ -35,8 +61,7 @@ Server 每 5 秒检查已过期的 `processing_expires_at`，按原 `attemptToke
 在共享 MySQL 执行 `bridge-protocol/src/main/resources/db/service-bridge-schema-mysql.sql`。Client、Server 应使用同一个业务数据库。
 
 ## BedrockMQ 接入
-
-还需执行 BedrockMQ 自带的三张表 DDL。
+[BedrockMQ 接入](https://github.com/redjujubetree/BedrockMQ/blob/main/bedrockmq-docs/docs/quickstart.md)
 
 Client 与 Server 应配置相同的 `service.bridge.mq.provider: bedrock`、REQUEST Topic 和 RESPONSE Topic。两个 Starter 都会引入 `bridge-mq`；业务方需显式加入 BedrockMQ 客户端依赖：
 
@@ -55,7 +80,7 @@ Client 与 Server 应配置相同的 `service.bridge.mq.provider: bedrock`、REQ
 
 Server 应以 `bridge-server-starter` 替换 Client Starter。
 
-BedrockMQ 配置示例（数据库和 Redis 连接按部署环境配置）：
+ 配置示例（数据库和 Redis 连接按部署环境配置）：
 
 ```yaml
 spring:
@@ -94,8 +119,5 @@ service:
 映射非空时，Client 只接受映射中列出的 `businessType`；Server 订阅所有不同的请求 Topic，并校验消息的业务类型与 Topic 是否匹配。多个业务可以共用一个请求 Topic。未配置映射或映射为空时，所有业务使用单个 `request-topic`（默认 `service-bridge.request`）。包含大写字母或特殊字符的业务类型应使用带引号的方括号键，以便 Spring Boot 原样绑定。
 
 同一请求 Topic 的 Server 实例使用相同消费组，不同请求 Topic 使用不同消费组；Client 实例使用 `service-bridge-client` 消费组。每个 Server 逻辑集群应加载相同的 Handler 集合；不同业务集群应使用不同 REQUEST Topic。
-
-ServiceBridge 使用 BedrockMQ 0.1.0 的 `BedrockConsumerRegistry.registerConsumer` 注册入站处理器。注册时会创建订阅并启动对应的轮询；已有订阅的启停状态和最大重试次数保持不变。重复注册相同的 Topic 和消费组会使应用启动失败。
-
 
 更多说明见 [架构与一致性](docs/architecture.md)、[Client Starter](docs/client-starter.md)、[Server Starter](docs/server-starter.md)、[数据库](docs/database.md) 和 [运维](docs/operations.md)。
